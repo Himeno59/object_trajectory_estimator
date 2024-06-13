@@ -23,9 +23,8 @@ public:
   void update(const Eigen::VectorXd& x, double y); // x = [1, x_n, ~ , x_n^k].T, y = y_n
   Eigen::VectorXd getParameters() const;
   double predict(double target_time);
-  double predictContactPoint();
-  void reset(); // 跳ね返ったタイミングでリセットする
-
+  double predictHighestPoint();
+  void reset();
   
 };
 

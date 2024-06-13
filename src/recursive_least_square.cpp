@@ -12,20 +12,28 @@ RecursiveLS::RecursiveLS(int k) {
   // パラメータベクトルの初期化
   if (degree == 2) {
     theta = Eigen::VectorXd(3);
-    theta << -0.85, 4.0, -5.0;
+    theta << -0.855, 4.3, -0.5*GRAVITY;
   } else {
     theta = Eigen::VectorXd(2);
     theta << 0.0, 0.0;
   }
   
   // 共分散行列の初期化
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1);
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 3; // 最初は少し早く反応させる
   // 忘却係数の設定
-  lambda = 0.90;
+  lambda = 0.99;
   // 予測値
   predict_value = 0.0;
   // 予測値計算用の時間のリスト
   time_vector = Eigen::VectorXd::Zero(degree+1);
+
+  // 予想最高到達点
+  if (degree == 2) {
+    predict_contact_value = theta[0] - std::pow(theta[1], 2) / (4 * theta[2]);
+  } else if (degree == 1) {
+    predict_contact_value = 1.0;
+  } 
+    
 }
 
 void RecursiveLS::setInitialTheta(const Eigen::VectorXd& initial_theta) {
@@ -50,7 +58,6 @@ void RecursiveLS::update(const Eigen::VectorXd& x, double y) {
     // 共分散行列の更新
     P = (Eigen::MatrixXd::Identity(theta.size(), theta.size()) - K * x.transpose()) * P / lambda;
   }
-
 }
 
 Eigen::VectorXd RecursiveLS::getParameters() const {
@@ -65,7 +72,7 @@ double RecursiveLS::predict(double target_time) {
   return predict_value;
 }
 
-double RecursiveLS::predictContactPoint() {
+double RecursiveLS::predictHighestPoint() {
   if (theta.size() == 3) {
     predict_contact_value = theta[0] - std::pow(theta[1], 2) / (4 * theta[2]);
   } else if (theta.size() == 2) {
@@ -74,8 +81,7 @@ double RecursiveLS::predictContactPoint() {
   return predict_contact_value;
 }
 
-
 void RecursiveLS::reset() {
   // 共分散行列の初期化
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1);
+  P = P*1.1; // 
 }
