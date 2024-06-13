@@ -44,7 +44,7 @@ private:
   void Publish();
   void updateStamp();
   void stateManager();
-  // void calcInitTheta();
+  void calcInitTheta();
   void calcNowState(const geometry_msgs::PointStamped::ConstPtr &msg);
 
   // tf変換
@@ -58,15 +58,15 @@ private:
   RecursiveLS rls_y;
   RecursiveLS rls_z;
 
-  // // ls: 各サイクルの初期パラメタの計算
-  // LeastSquare ls_x;
-  // LeastSquare ls_y;
-  // LeastSquare ls_z;
-  // // 各サイクルの初期係数決定パラメタ
-  // std::vector<double> init_time_list;
-  // std::vector<double> init_x_list;
-  // std::vector<double> init_y_list;
-  // std::vector<double> init_z_list;
+  // ls: 各サイクルの初期パラメタの計算
+  LeastSquare ls_x;
+  LeastSquare ls_y;
+  LeastSquare ls_z;
+  // 各サイクルの初期係数決定パラメタ
+  std::vector<double> init_time_list;
+  std::vector<double> init_x_list;
+  std::vector<double> init_y_list;
+  std::vector<double> init_z_list;
 
   double dt;
   double target_time;
@@ -77,7 +77,7 @@ private:
 
   bool ready_flag;
   bool ballSet_flag;
-  // bool thetaInitialize;
+  bool thetaInitialize;
 
   bool predictStart_flag; // true:予測する, false:予測しない、paramをリセット
   bool loop_init;
@@ -94,7 +94,7 @@ public:
 };
 
 ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
-  : nh(""), pnh("~"), rls_x(k_x), rls_y(k_y), rls_z(k_z), tfListener(tfBuffer)
+  : nh(""), pnh("~"), rls_x(k_x), rls_y(k_y), rls_z(k_z), ls_x(k_x), ls_y(k_y), ls_z(k_z), tfListener(tfBuffer)
 {
   // subscriber
   point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::Callback, this);
@@ -137,7 +137,7 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   ballSet_flag = false;
   loop_init = true;
   predictStart_flag = false;
-  // thetaInitialize = true;
+  thetaInitialize = true;
 }
 
 void ObjectTrajectoryEstimator::updateStamp(){
@@ -150,35 +150,35 @@ void ObjectTrajectoryEstimator::updateStamp(){
   dt = (now_state.header.stamp - prev_state.header.stamp).toSec();
 }
 
-// // 各サイクルの初期係数の決定
-// // 精度が微妙なのでまだ使わない
-// void ObjectTrajectoryEstimator::calcInitTheta() {
+// 各サイクルの初期係数の決定
+// hzの高いカメラで最初に十分点を取得できるときは使えそう
+void ObjectTrajectoryEstimator::calcInitTheta() {
   
-//   init_time_list.push_back(current_time);
-//   init_x_list.push_back(now_state.pos.x);
-//   init_y_list.push_back(now_state.pos.y);
-//   init_z_list.push_back(now_state.pos.z);
+  init_time_list.push_back(current_time);
+  init_x_list.push_back(now_state.pos.x);
+  init_y_list.push_back(now_state.pos.y);
+  init_z_list.push_back(now_state.pos.z);
   
-//   // 最小二乗法で計算
-//   if (init_time_list.size() == 20) { // n点集まってからスタート   
-//     // lsでの計算
-//     ls_x.calcTheta(init_time_list, init_x_list);
-//     ls_y.calcTheta(init_time_list, init_y_list);
-//     ls_z.calcTheta(init_time_list, init_z_list);
+  // 最小二乗法で計算
+  if (init_time_list.size() == 15) { // n点集まってからスタート   
+    // lsでの計算
+    ls_x.calcTheta(init_time_list, init_x_list);
+    ls_y.calcTheta(init_time_list, init_y_list);
+    ls_z.calcTheta(init_time_list, init_z_list);
     
-//     // rlsの初期係数として設定
-//     rls_x.setInitialTheta(ls_x.getParameters());
-//     rls_y.setInitialTheta(ls_y.getParameters());
-//     rls_z.setInitialTheta(ls_z.getParameters());
+    // rlsの初期係数として設定
+    rls_x.setInitialTheta(ls_x.getParameters());
+    rls_y.setInitialTheta(ls_y.getParameters());
+    rls_z.setInitialTheta(ls_z.getParameters());
     
-//     // reset
-//     thetaInitialize = false;
-//     init_time_list.clear();
-//     init_x_list.clear();
-//     init_y_list.clear();
-//     init_z_list.clear();
-//   }
-// }
+    // reset
+    thetaInitialize = false;
+    init_time_list.clear();
+    init_x_list.clear();
+    init_y_list.clear();
+    init_z_list.clear();
+  }
+}
 
 // カメラ->BODYの座標変換
 geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint
@@ -241,10 +241,11 @@ void ObjectTrajectoryEstimator::stateManager() {
       // ボールの速度が0以下のときは予測しない
       predictStart_flag = false;
 
-      // パラメタ(共分散行列)のリセット
-      rls_x.reset();
-      rls_y.reset();
-      rls_z.reset();
+      // rslのパラメタ初期化
+      // 一旦やらないでおく
+      // rls_x.reset();
+      // rls_y.reset();
+      // rls_z.reset();
       // thetaInitialize = true;
 
       // 時間のリセット
@@ -285,15 +286,15 @@ void ObjectTrajectoryEstimator::Callback(const geometry_msgs::PointStamped::Cons
     
     // 予測値の計算
     // 位置
-    // 時間指定ver
-    target_time = current_time + pred_time;
-    pred_state.pos.x = rls_x.predict(target_time);
-    pred_state.pos.y = rls_y.predict(target_time);
-    pred_state.pos.z = rls_z.predict(target_time);
-    // // 最高到達点ver
-    // pred_state.pos.x = rls_x.predictContactPoint();
-    // pred_state.pos.y = rls_y.predictContactPoint(); // x,yは一旦1を返すようにしている
-    // pred_state.pos.z = rls_z.predictContactPoint();
+    // // 時間指定ver
+    // target_time = current_time + pred_time;
+    // pred_state.pos.x = rls_x.predict(target_time);
+    // pred_state.pos.y = rls_y.predict(target_time);
+    // pred_state.pos.z = rls_z.predict(target_time);
+    // 最高到達点ver
+    pred_state.pos.x = rls_x.predictHighestPoint();
+    pred_state.pos.y = rls_y.predictHighestPoint(); // x,yは一旦1を返すようにしている
+    pred_state.pos.z = rls_z.predictHighestPoint();
 
     // todo: 速度
   }
