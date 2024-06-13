@@ -111,7 +111,7 @@ generate_messages(
 catkin_package(
   # INCLUDE_DIRS include
   # LIBRARIES basketball_motion
-  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs tf2_msgs tf2_geometry_msgs
+  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs tf2_msgs tf2_geometry_msgs message_runtime
   # DEPENDS system_lib
 )
 
