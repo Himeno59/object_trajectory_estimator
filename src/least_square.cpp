@@ -22,7 +22,6 @@ void LeastSquare::calcTheta(const std::vector<double>& x, std::vector<double>& y
   }
   
   theta = A.colPivHouseholderQr().solve(b);
-  std::cout << "theta: " << theta << std::endl;
 }
 
 Eigen::VectorXd LeastSquare::getParameters () const {
