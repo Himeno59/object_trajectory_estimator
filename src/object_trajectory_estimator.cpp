@@ -5,6 +5,7 @@
 #include "tf2_msgs/TFMessage.h"
 #include "tf2_ros/transform_listener.h"
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
+#include "object_trajectory_estimator/BallStateStamped.h"
 
 #include "basketball_motion/recursive_least_square.hpp"
 #include "basketball_motion/least_square.hpp"
@@ -26,15 +27,16 @@ private:
   // 出力: 現在のBODY相対の物体位置、速度
   //       予測したBODY相対の物体の最高到達点、速度
   ros::Subscriber point_sub;
-  ros::Publisher now_state_pos_pub, pred_state_pos_pub;
-  ros::Publisher now_state_vel_pub, pred_state_vel_pub;
+  ros::Publisher now_state_pub, pred_state_pub; // to BasketballMotionController
+  ros::Publisher now_state_pos_pub, pred_state_pos_pub; // for ros-visualization
   // ros::Publisher real_traj_pub, pred_traj_pub;
-
-  geometry_msgs::PointStamped now_state_pos, pred_state_pos, prev_state_pos;
-  geometry_msgs::Vector3Stamped now_state_vel, pred_state_vel, prev_state_vel;
+  
+  object_trajectory_estimator::BallStateStamped now_state, pred_state;
+  object_trajectory_estimator::BallStateStamped prev_state; // 値保持用
+  geometry_msgs::PointStamped now_state_pos, pred_state_pos;
   // tf2_msgs::TFMessage real_traj, pred_traj;
 
-  // デバッグ用: now_state_posをpred_time秒左に平行移動させたものをplot
+  // デバッグ用: now_state_posをpred_time秒左に平行移動させたものをpublish
   ros::Publisher dummy_state_pos_pub;
   geometry_msgs::PointStamped dummy_state_pos;
 
@@ -42,8 +44,8 @@ private:
   void Publish();
   void updateStamp();
   void stateManager();
-  void calcInitTheta();
-  void calcNowObjState(const geometry_msgs::PointStamped::ConstPtr &msg);
+  // void calcInitTheta();
+  void calcNowState(const geometry_msgs::PointStamped::ConstPtr &msg);
 
   // tf変換
   tf2_ros::Buffer tfBuffer;
@@ -51,14 +53,20 @@ private:
   geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped::ConstPtr &msg);
 
   // rls: パラメタ更新
+  // todo: rlsの実装をx,y,z同時に扱えるようにする
   RecursiveLS rls_x;
   RecursiveLS rls_y;
   RecursiveLS rls_z;
 
-  // ls: 各サイクルの初期パラメタの計算
-  LeastSquare ls_x;
-  LeastSquare ls_y;
-  LeastSquare ls_z;
+  // // ls: 各サイクルの初期パラメタの計算
+  // LeastSquare ls_x;
+  // LeastSquare ls_y;
+  // LeastSquare ls_z;
+  // // 各サイクルの初期係数決定パラメタ
+  // std::vector<double> init_time_list;
+  // std::vector<double> init_x_list;
+  // std::vector<double> init_y_list;
+  // std::vector<double> init_z_list;
 
   double dt;
   double target_time;
@@ -69,13 +77,7 @@ private:
 
   bool ready_flag;
   bool ballSet_flag;
-
-  // 各サイクルの初期係数決定パラメタ
-  bool thetaInitialize;
-  std::vector<double> init_time_list;
-  std::vector<double> init_x_list;
-  std::vector<double> init_y_list;
-  std::vector<double> init_z_list;
+  // bool thetaInitialize;
 
   bool predictStart_flag; // true:予測する, false:予測しない、paramをリセット
   bool loop_init;
@@ -92,21 +94,20 @@ public:
 };
 
 ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
-  : nh(""), pnh("~"), rls_x(k_x), rls_y(k_y), rls_z(k_z), ls_x(k_x), ls_y(k_y), ls_z(k_z), tfListener(tfBuffer)
+  : nh(""), pnh("~"), rls_x(k_x), rls_y(k_y), rls_z(k_z), tfListener(tfBuffer)
 {
   // subscriber
-  // point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::Callback, this);
-  point_sub = pnh.subscribe("/centroid_publisher/output/point", 1, &ObjectTrajectoryEstimator::Callback, this);
+  point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::Callback, this);
    
   // publisher
+  now_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("now_state_output", 1);
+  pred_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("pred_state_output", 1);
   now_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("now_state_pos_output", 1);
   pred_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("pred_state_pos_output", 1);
-  now_state_vel_pub = pnh.advertise<geometry_msgs::Vector3Stamped>("now_state_vel_output", 1);
-  pred_state_vel_pub = pnh.advertise<geometry_msgs::Vector3Stamped>("pred_state_vel_output", 1);
+  dummy_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("dummy_state_pos_output", 1);
   // real_traj_pub = nh.advertise<tf2_msgs::TFMessage>(real_traj_output, 1);
   // pred_traj_pub = nh.advertise<tf2_msgs::TFMessage>(pred_traj_output, 1);
-  dummy_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("dummy_state_pos_output", 1);
-
+  
   // get rosparam
   pnh.getParam("frame_id", frame_id);
   pnh.getParam("camera_frame", camera_frame);
@@ -114,22 +115,18 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   pnh.getParam("bound_thr", bound_thr);
   pnh.getParam("pred_time", pred_time);
   
-  // header
+  // header setup
   // frame_id
-  now_state_pos.header.frame_id = frame_id;
-  now_state_vel.header.frame_id = frame_id;
-  pred_state_pos.header.frame_id = frame_id;
-  pred_state_vel.header.frame_id = frame_id;
-  prev_state_pos.header.frame_id = frame_id;
-  prev_state_vel.header.frame_id = frame_id;
+  now_state.header.frame_id = base_frame;
+  pred_state.header.frame_id = base_frame;
+  now_state_pos.header.frame_id = base_frame;
+  pred_state_pos.header.frame_id = base_frame;
   // stamp
   ros::Time tmp_time = ros::Time::now();
+  now_state.header.stamp = tmp_time;
+  pred_state.header.stamp = tmp_time;
   now_state_pos.header.stamp = tmp_time;
-  now_state_vel.header.stamp = tmp_time;
   pred_state_pos.header.stamp = tmp_time;
-  prev_state_vel.header.stamp = tmp_time;
-  pred_state_pos.header.stamp = tmp_time;
-  pred_state_vel.header.stamp = tmp_time;
 
   current_time = 0.0;
   time_x = Eigen::VectorXd::Zero(k_x+1);
@@ -138,53 +135,50 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
 
   ready_flag = true;
   ballSet_flag = false;
-  thetaInitialize = true;
-
-  predictStart_flag = false;
-
-  bound_thr = -0.60;
-
   loop_init = true;
+  predictStart_flag = false;
+  // thetaInitialize = true;
 }
 
 void ObjectTrajectoryEstimator::updateStamp(){
   ros::Time now_time = ros::Time::now();
+  now_state.header.stamp = now_time; 
+  pred_state.header.stamp = now_time;
   now_state_pos.header.stamp = now_time; 
-  now_state_vel.header.stamp = now_time;
   pred_state_pos.header.stamp = now_time;
-  pred_state_vel.header.stamp = now_time;
   dummy_state_pos.header.stamp = now_time - ros::Duration(pred_time);
-  dt = (now_state_pos.header.stamp - prev_state_pos.header.stamp).toSec();
+  dt = (now_state.header.stamp - prev_state.header.stamp).toSec();
 }
 
-// 各サイクルの初期係数の決定
-void ObjectTrajectoryEstimator::calcInitTheta() {
+// // 各サイクルの初期係数の決定
+// // 精度が微妙なのでまだ使わない
+// void ObjectTrajectoryEstimator::calcInitTheta() {
   
-  init_time_list.push_back(current_time);
-  init_x_list.push_back(now_state_pos.point.x);
-  init_y_list.push_back(now_state_pos.point.y);
-  init_z_list.push_back(now_state_pos.point.z);
+//   init_time_list.push_back(current_time);
+//   init_x_list.push_back(now_state.pos.x);
+//   init_y_list.push_back(now_state.pos.y);
+//   init_z_list.push_back(now_state.pos.z);
   
-  // 最小二乗法で計算
-  if (init_time_list.size() == 20) { // n点集まってからスタート   
-    // lsでの計算
-    ls_x.calcTheta(init_time_list, init_x_list);
-    ls_y.calcTheta(init_time_list, init_y_list);
-    ls_z.calcTheta(init_time_list, init_z_list);
+//   // 最小二乗法で計算
+//   if (init_time_list.size() == 20) { // n点集まってからスタート   
+//     // lsでの計算
+//     ls_x.calcTheta(init_time_list, init_x_list);
+//     ls_y.calcTheta(init_time_list, init_y_list);
+//     ls_z.calcTheta(init_time_list, init_z_list);
     
-    // rlsの初期係数として設定
-    rls_x.setInitialTheta(ls_x.getParameters());
-    rls_y.setInitialTheta(ls_y.getParameters());
-    rls_z.setInitialTheta(ls_z.getParameters());
+//     // rlsの初期係数として設定
+//     rls_x.setInitialTheta(ls_x.getParameters());
+//     rls_y.setInitialTheta(ls_y.getParameters());
+//     rls_z.setInitialTheta(ls_z.getParameters());
     
-    // reset
-    thetaInitialize = false;
-    init_time_list.clear();
-    init_x_list.clear();
-    init_y_list.clear();
-    init_z_list.clear();
-  }
-}
+//     // reset
+//     thetaInitialize = false;
+//     init_time_list.clear();
+//     init_x_list.clear();
+//     init_y_list.clear();
+//     init_z_list.clear();
+//   }
+// }
 
 // カメラ->BODYの座標変換
 geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint
@@ -211,16 +205,16 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint
 }
 
 // BODY相対の物体の位置、速度の計算
-void ObjectTrajectoryEstimator::calcNowObjState(const geometry_msgs::PointStamped::ConstPtr &msg) {
+void ObjectTrajectoryEstimator::calcNowState(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // 位置
   geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, msg);
-  now_state_pos.point.x = transformedPoint.point.x;
-  now_state_pos.point.y = transformedPoint.point.y;
-  now_state_pos.point.z = transformedPoint.point.z;
+  now_state.pos.x = transformedPoint.point.x;
+  now_state.pos.y = transformedPoint.point.y;
+  now_state.pos.z = transformedPoint.point.z;
   // 速度
-  now_state_vel.vector.x = (now_state_pos.point.x - prev_state_pos.point.x) / dt;
-  now_state_vel.vector.y = (now_state_pos.point.y - prev_state_pos.point.y) / dt;
-  now_state_vel.vector.z = (now_state_pos.point.z - prev_state_pos.point.z) / dt;
+  now_state.vel.x = (now_state.pos.x - prev_state.pos.x) / dt;
+  now_state.vel.y = (now_state.pos.y - prev_state.pos.y) / dt;
+  now_state.vel.z = (now_state.pos.z - prev_state.pos.z) / dt;
 
   // 確認用
   dummy_state_pos.point.x = transformedPoint.point.x;
@@ -231,19 +225,19 @@ void ObjectTrajectoryEstimator::calcNowObjState(const geometry_msgs::PointStampe
 void ObjectTrajectoryEstimator::stateManager() {
   // 動作開始の判定
   if (ready_flag) {
-    if (now_state_pos.point.z >= -0.5) {
+    if (now_state.pos.z >= -0.5) {
       // ボールをセットしたと判定
       ballSet_flag = true;
-    } else if (ballSet_flag && now_state_pos.point.z < -0.4) {
+    } else if (ballSet_flag && now_state.pos.z < -0.4) {
       // セットした後にある程度ボール位置が落ちてきたら動作が始まったと判定
       ballSet_flag = false;
       ready_flag = false;
     }
   } else {
-    if (now_state_vel.vector.z > 0) {
+    if (now_state.vel.z > 0) {
       // ボールの速度が正のときは常に予測する
       predictStart_flag = true;
-    } else if (now_state_vel.vector.z <= 0) {
+    } else if (now_state.vel.z <= 0) {
       // ボールの速度が0以下のときは予測しない
       predictStart_flag = false;
 
@@ -251,7 +245,7 @@ void ObjectTrajectoryEstimator::stateManager() {
       rls_x.reset();
       rls_y.reset();
       rls_z.reset();
-      thetaInitialize = true;
+      // thetaInitialize = true;
 
       // 時間のリセット
       current_time = 0.0;
@@ -264,7 +258,7 @@ void ObjectTrajectoryEstimator::Callback(const geometry_msgs::PointStamped::Cons
   updateStamp();
   
   // 現在の(BODY相対の)objの状態 = now_state_pos/vel を計算
-  calcNowObjState(msg);
+  calcNowState(msg);
   
   // 状態の管理 + パラメタのリセット
   stateManager();
@@ -272,7 +266,7 @@ void ObjectTrajectoryEstimator::Callback(const geometry_msgs::PointStamped::Cons
   // rlsの初期値を利用するver
   if (predictStart_flag) {
 
-    if (!loop_init) current_time += dt;
+    if (!loop_init) current_time += dt; // 最初は current_time = 0.0 とする
     loop_init = false;
     
     for (int i = 0; i < time_x.size(); ++i) {
@@ -285,20 +279,23 @@ void ObjectTrajectoryEstimator::Callback(const geometry_msgs::PointStamped::Cons
       time_z(i) = std::pow(current_time, i); 
     }
     // 係数の更新
-    rls_x.update(time_x, now_state_pos.point.x);
-    rls_y.update(time_y, now_state_pos.point.y);
-    rls_z.update(time_z, now_state_pos.point.z);
+    rls_x.update(time_x, now_state.pos.x);
+    rls_y.update(time_y, now_state.pos.y);
+    rls_z.update(time_z, now_state.pos.z);
     
     // 予測値の計算
+    // 位置
     // 時間指定ver
     target_time = current_time + pred_time;
-    pred_state_pos.point.x = rls_x.predict(target_time);
-    pred_state_pos.point.y = rls_y.predict(target_time);
-    pred_state_pos.point.z = rls_z.predict(target_time);
+    pred_state.pos.x = rls_x.predict(target_time);
+    pred_state.pos.y = rls_y.predict(target_time);
+    pred_state.pos.z = rls_z.predict(target_time);
     // // 最高到達点ver
-    // pred_state_pos.point.x = rls_x.predictContactPoint();
-    // pred_state_pos.point.y = rls_y.predictContactPoint(); // x,yは一旦1を返すようにしている
-    // pred_state_pos.point.z = rls_z.predictContactPoint();
+    // pred_state.pos.x = rls_x.predictContactPoint();
+    // pred_state.pos.y = rls_y.predictContactPoint(); // x,yは一旦1を返すようにしている
+    // pred_state.pos.z = rls_z.predictContactPoint();
+
+    // todo: 速度
   }
 
   // // 各サイクルの最初に最小二乗法で推定するフェーズを挟むver
@@ -320,36 +317,34 @@ void ObjectTrajectoryEstimator::Callback(const geometry_msgs::PointStamped::Cons
   // 	time_z(i) = std::pow(current_time, i); 
   //     }
   //     // 係数の更新
-  //     rls_x.update(time_x, now_state_pos.point.x);
-  //     rls_y.update(time_y, now_state_pos.point.y);
-  //     rls_z.update(time_z, now_state_pos.point.z);
+  //     rls_x.update(time_x, now_state.pos.x);
+  //     rls_y.update(time_y, now_state.pos.y);
+  //     rls_z.update(time_z, now_state.pos.z);
       
   //     // 予測値の計算
   //     // 時間指定ver
   //     target_time = current_time + pred_time;
-  //     // target_time = current_time;
-  //     pred_state_pos.point.x = rls_x.predict(target_time);
-  //     pred_state_pos.point.y = rls_y.predict(target_time);
-  //     pred_state_pos.point.z = rls_z.predict(target_time);
+  //     pred_state.pos.x = rls_x.predict(target_time);
+  //     pred_state.pos.y = rls_y.predict(target_time);
+  //     pred_state.pos.z = rls_z.predict(target_time);
   //     // // 最高到達点ver
-  //     // pred_state_pos.point.x = rls_x.predictContactPoint();
-  //     // pred_state_pos.point.y = rls_y.predictContactPoint();
-  //     // pred_state_pos.point.z = rls_z.predictContactPoint(); 
+  //     // pred_state.pos.x = rls_x.predictContactPoint();
+  //     // pred_state.pos.y = rls_y.predictContactPoint();
+  //     // pred_state.pos.z = rls_z.predictContactPoint(); 
   //   }
   // }
   
   Publish();
   
   // 値の保持
-  prev_state_pos = now_state_pos;
-  prev_state_vel = now_state_vel;
+  prev_state = now_state;
 }
 
 void ObjectTrajectoryEstimator::Publish(){
+  now_state_pub.publish(now_state);
+  pred_state_pub.publish(pred_state);
   now_state_pos_pub.publish(now_state_pos);
-  now_state_vel_pub.publish(now_state_vel);
   pred_state_pos_pub.publish(pred_state_pos);
-  pred_state_vel_pub.publish(pred_state_vel);
   // real_traj_pub.publish(real_traj);
   // pred_trag_pub.publish(pred_traj);
 

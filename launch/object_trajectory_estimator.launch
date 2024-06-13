@@ -3,25 +3,25 @@
   <arg name="DEFAULT_NAMESPACE" default="ObjectTrajectoryEstimator" />
 
   <arg name="POINT_INPUT" default="/centroid_publisher/output/point" />
+  <arg name="NOW_STATE_OUTPUT" default="now_ball_state" />
+  <arg name="PRED_STATE_OUTPUT" default="pred_ball_state" />
   <arg name="NOW_STATE_POS_OUTPUT" default="now_ball_state_pos" />
   <arg name="PRED_STATE_POS_OUTPUT" default="pred_ball_state_pos" />
-  <arg name="NOW_STATE_VEL_OUTPUT" default="now_ball_state_vel" />
-  <arg name="PRED_STATE_VEL_OUTPUT" default="pred_ball_state_vel" />
+  <arg name="DUMMY_STATE_POS_OUTPUT" default="dummy_state_pos" />
   <arg name="REAL_TRAJ_OUTPUT" default="real_ball_trajectory" />
   <arg name="PRED_TRAJ_OUTPUT" default="pred_ball_trajectory" />
-  <arg name="DUMMY_STATE_POS_OUTPUT" default="dummy_state_pos" />
-
+    
   <group ns="$(arg DEFAULT_NAMESPACE)">
-    <node pkg="basketball_motion" type="object_trajectory_estimator"
+    <node pkg="object_trajectory_estimator" type="object_trajectory_estimator"
 	  name="ball_estimate" output="screen">
-      <remap from="point_input" to="$(arg POINT_INPUT)" />
+      <remap from="~point_input" to="$(arg POINT_INPUT)" />
+      <remap from="~now_state_output" to="$(arg NOW_STATE_OUTPUT)" />
+      <remap from="~pred_state_output" to="$(arg PRED_STATE_OUTPUT)" />
       <remap from="~now_state_pos_output" to="$(arg NOW_STATE_POS_OUTPUT)" />
       <remap from="~pred_state_pos_output" to="$(arg PRED_STATE_POS_OUTPUT)" />
-      <remap from="~now_state_vel_output" to="$(arg NOW_STATE_VEL_OUTPUT)" />
-      <remap from="~pred_state_vel_output" to="$(arg PRED_STATE_VEL_OUTPUT)" />
+      <remap from="~dummy_state_pos_output" to="$(arg DUMMY_STATE_POS_OUTPUT)" />
       <remap from="~real_traj_output" to="$(arg REAL_TRAJ_OUTPUT)" />
       <remap from="~pred_traj_output" to="$(arg PRED_TRAJ_OUTPUT)" />
-      <remap from="~dummy_state_pos_output" to="$(arg DUMMY_STATE_POS_OUTPUT)" />
       <rosparam>
         frame_id: rs_l515_depth_optical_frame
         camera_frame: rs_l515_depth_optical_frame
