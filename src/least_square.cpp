@@ -1,4 +1,4 @@
-#include "basketball_motion/least_square.hpp"
+#include "object_trajectory_estimator/least_square.hpp"
 
 LeastSquare::LeastSquare(int k) {
   // k次の多項式モデルでフィッティング

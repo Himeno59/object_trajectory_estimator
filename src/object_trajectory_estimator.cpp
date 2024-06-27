@@ -7,8 +7,8 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.h"
 #include "object_trajectory_estimator/BallStateStamped.h"
 
-#include "basketball_motion/recursive_least_square.hpp"
-#include "basketball_motion/least_square.hpp"
+#include "object_trajectory_estimator/recursive_least_square.hpp"
+#include "object_trajectory_estimator/least_square.hpp"
 
 #include "iostream"
 #include "vector"

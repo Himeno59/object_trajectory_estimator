@@ -1,4 +1,4 @@
-#include "basketball_motion/recursive_least_square.hpp"
+#include "object_trajectory_estimatorrecursive_least_square.hpp"
 
 #include "limits"
 
@@ -19,7 +19,7 @@ RecursiveLS::RecursiveLS(int k) {
   }
   
   // 共分散行列の初期化
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 3; // 最初は少し早く反応させる
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 2; // 最初は少し早く反応させる
   // 忘却係数の設定
   lambda = 0.99;
   // 予測値
