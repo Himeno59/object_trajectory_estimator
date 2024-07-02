@@ -72,8 +72,9 @@ double RecursiveLS::predict(double target_time) {
   return predict_value;
 }
 
-double RecursiveLS::predictHighestPoint() {
+std::vector<double> RecursiveLS::calcVertex() {
   if (theta.size() == 3) {
+    
     predict_contact_value = theta[0] - std::pow(theta[1], 2) / (4 * theta[2]);
   } else if (theta.size() == 2) {
     predict_contact_value = 1.0;
@@ -83,5 +84,5 @@ double RecursiveLS::predictHighestPoint() {
 
 void RecursiveLS::reset() {
   // 共分散行列の初期化
-  P = P*1.1; // 
+  P = P*1.1;
 }
