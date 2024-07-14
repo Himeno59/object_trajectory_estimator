@@ -72,6 +72,8 @@ private:
   std::string frame_id, camera_frame, base_frame;
   double bound_thr; // 今のjaxonの姿勢から出せるようにしたい
   double pred_time;
+  double init_thr;
+  double start_thr;
   
 public:
   ObjectTrajectoryEstimator(int k_x, int k_y, int k_z);
@@ -100,6 +102,8 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   pnh.getParam("base_frame", base_frame);
   pnh.getParam("bound_thr", bound_thr);
   pnh.getParam("pred_time", pred_time);
+  pnh.getParam("init_thr", init_thr);
+  pnh.getParam("start_thr", start_thr);
   
   // header setup
   // frame_id
@@ -207,10 +211,10 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint
 void ObjectTrajectoryEstimator::stateManager() {
   // 動作開始の判定
   if (ready_flag) {
-    if (now_state.pos.z >= -0.60) {
+    if (now_state.pos.z >= init_thr) {
       // ボールをセットしたと判定
       ballSet_flag = true;
-    } else if (ballSet_flag && now_state.pos.z < -0.30) {
+    } else if (ballSet_flag && now_state.pos.z < start_thr) {
       // セットした後にある程度ボール位置が落ちてきたら動作が始まったと判定
       ballSet_flag = false;
       ready_flag = false;

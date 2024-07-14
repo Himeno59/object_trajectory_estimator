@@ -26,6 +26,8 @@
         frame_id: rs_l515_depth_optical_frame
         camera_frame: rs_l515_depth_optical_frame
         base_frame: BODY
+        init_thr: 0.0
+        start_thr: -0.50
         pred_time: 0.10
         bound_thr: -0.72
       </rosparam>
