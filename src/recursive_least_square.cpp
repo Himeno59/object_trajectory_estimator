@@ -41,6 +41,14 @@ Eigen::VectorXd RLS::getParameters() const {
   return theta;
 }
 
+void RLS::setParameters(double theta0, double theta1, double theta2) {
+  if (theta.size() == 3) {
+    theta[0] = theta0;
+    theta[1] = theta1;
+    theta[2] = theta2;
+  }
+}
+
 double RLS::predict(double target_time) {
   Eigen::VectorXd time_vector(degree+1);
   for (int i=0;i<degree+1;i++) {

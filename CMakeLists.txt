@@ -60,11 +60,11 @@ add_message_files(
 )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  SetRLSParameters.srv
+  GetRLSParameters.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -147,6 +147,13 @@ add_executable(object_trajectory_estimator
 target_link_libraries(object_trajectory_estimator
   ${catkin_LIBRARIES}
   )
+
+
+## srv
+add_executable(set_rls_param src/set_rls_param.cpp)
+target_link_libraries(set_rls_param ${catkin_LIBRARIES})
+add_executable(get_rls_param src/get_rls_param.cpp)
+target_link_libraries(get_rls_param ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
