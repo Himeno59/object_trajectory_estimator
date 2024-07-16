@@ -14,6 +14,8 @@ public:
   double predict(double target_time);
   void reset();
 
+  void setParameters(double theta0, double theta1, double theta2);  // srvでsetする用
+
 public:
   int degree;                       // k次の多項式モデルでフィッティング
   double lambda;                    // 忘却係数
@@ -35,8 +37,6 @@ public:
 public:
   double vertexTime;
   std::vector<double> vertexPoint;
-  
-private:
   std::vector<RLS> rls3d;
 };
 

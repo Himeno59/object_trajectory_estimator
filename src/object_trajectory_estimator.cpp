@@ -10,6 +10,9 @@
 #include "object_trajectory_estimator/recursive_least_square.hpp"
 #include "object_trajectory_estimator/least_square.hpp"
 
+#include "object_trajectory_estimator/SetRLSParameters.h"
+#include "object_trajectory_estimator/GetRLSParameters.h"
+
 #include "iostream"
 #include "vector"
 
@@ -22,6 +25,8 @@ class ObjectTrajectoryEstimator
 private:
   ros::NodeHandle nh;
   ros::NodeHandle pnh;
+  ros::ServiceServer set_service;
+  ros::ServiceServer get_service;
 
   // 入力: カメラ相対の色つき3次元点群の重心
   ros::Subscriber point_sub;
@@ -78,12 +83,38 @@ private:
 public:
   ObjectTrajectoryEstimator(int k_x, int k_y, int k_z);
   ~ObjectTrajectoryEstimator(){};
+
+  // srv
+  bool setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request  &req,
+			object_trajectory_estimator::SetRLSParameters::Response &res);
+  bool getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request  &req,
+			object_trajectory_estimator::GetRLSParameters::Response &res);
   
 };
+
+bool ObjectTrajectoryEstimator::setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request  &req,
+						 object_trajectory_estimator::SetRLSParameters::Response &res) {
+  rls.rls3d[2].setParameters(req.params[0], req.params[1], req.params[2]);
+  res.success = true;
+  return true;
+}
+
+
+bool ObjectTrajectoryEstimator::getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request  &req,
+						 object_trajectory_estimator::GetRLSParameters::Response &res) {
+  res.params[0] = rls.rls3d[2].getParameters()[0];
+  res.params[1] = rls.rls3d[2].getParameters()[1];
+  res.params[2] = rls.rls3d[2].getParameters()[2];
+  return true;
+}
 
 ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   : nh(""), pnh("~"), rls(k_x, k_y, k_z), tfListener(tfBuffer)
 {
+  // srv
+  set_service = nh.advertiseService("/ObjectTrajectoryEstimator/set_rls_parameters", &ObjectTrajectoryEstimator::setRLSParameters, this);
+  get_service = nh.advertiseService("/ObjectTrajectoryEstimator/get_rls_parameters", &ObjectTrajectoryEstimator::getRLSParameters, this);
+  
   // subscriber
   point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::Callback, this);
    
