@@ -1,123 +1,18 @@
-#include "ros/ros.h"
-#include "geometry_msgs/PointStamped.h"
-#include "geometry_msgs/Vector3Stamped.h"
-#include "geometry_msgs/TransformStamped.h"
-#include "tf2_msgs/TFMessage.h"
-#include "tf2_ros/transform_listener.h"
-#include "tf2_geometry_msgs/tf2_geometry_msgs.h"
-#include "object_trajectory_estimator/BallStateStamped.h"
+#include "object_trajectory_estimator/object_trajectory_estimator.hpp"
 
-#include "object_trajectory_estimator/recursive_least_square.hpp"
-#include "object_trajectory_estimator/least_square.hpp"
-
-#include "object_trajectory_estimator/SetRLSParameters.h"
-#include "object_trajectory_estimator/GetRLSParameters.h"
-
-#include "iostream"
-#include "vector"
-
-#ifndef GRAVITY
-#define GRAVITY 9.80665
-#endif
-
-class ObjectTrajectoryEstimator
-{
-private:
-  ros::NodeHandle nh;
-  ros::NodeHandle pnh;
-  ros::ServiceServer set_service;
-  ros::ServiceServer get_service;
-
-  // 入力: カメラ相対の色つき3次元点群の重心
-  ros::Subscriber point_sub;
-  // 出力: 現在のBODY相対の物体位置、速度
-  //       予測したBODY相対の物体の最高到達点、速度
-  ros::Publisher now_state_pub, pred_state_pub;          // to BasketballMotionController
-  ros::Publisher now_state_pos_pub, pred_state_pos_pub;  // to ros-visualization
-  // ros::Publisher real_traj_pub, pred_traj_pub;
-  
-  object_trajectory_estimator::BallStateStamped now_state, pred_state;
-  object_trajectory_estimator::BallStateStamped prev_state; // 値保持用
-  geometry_msgs::PointStamped now_state_pos, pred_state_pos;
-  // tf2_msgs::TFMessage real_traj, pred_traj;
-
-  // デバッグ用: now_state_posをpred_time秒左に平行移動させたものをpublish
-  ros::Publisher dummy_state_pos_pub;
-  geometry_msgs::PointStamped dummy_state_pos;
-
-  void Callback(const geometry_msgs::PointStamped::ConstPtr &msg);
-  void Publish();
-  void updateStamp();
-  void stateManager();
-  void calcNowState(const geometry_msgs::PointStamped::ConstPtr &msg);
-  void calcPredState();
-
-  // tf変換
-  tf2_ros::Buffer tfBuffer;
-  tf2_ros::TransformListener tfListener;
-  geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped::ConstPtr &msg);
-
-  // rls: パラメタ更新
-  RLS3D rls;
-
-  double dt;
-  double current_time;
-  double target_time;
-  Eigen::VectorXd timeVector;
-
-  bool ready_flag;
-  bool ballSet_flag;
-
-  // bool thetaInitialize;
-
-  bool predict_flag; // true:予測する, false:予測しない、paramをリセット
-  bool loop_init;
-
-  // rosparam
-  std::string frame_id, camera_frame, base_frame;
-  double bound_thr; // 今のjaxonの姿勢から出せるようにしたい
-  double pred_time;
-  double init_thr;
-  double start_thr;
-  
-public:
-  ObjectTrajectoryEstimator(int k_x, int k_y, int k_z);
-  ~ObjectTrajectoryEstimator(){};
-
-  // srv
-  bool setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request  &req,
-			object_trajectory_estimator::SetRLSParameters::Response &res);
-  bool getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request  &req,
-			object_trajectory_estimator::GetRLSParameters::Response &res);
-  
-};
-
-bool ObjectTrajectoryEstimator::setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request  &req,
-						 object_trajectory_estimator::SetRLSParameters::Response &res) {
-  rls.rls3d[2].setParameters(req.params[0], req.params[1], req.params[2]);
-  res.success = true;
-  return true;
-}
-
-
-bool ObjectTrajectoryEstimator::getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request  &req,
-						 object_trajectory_estimator::GetRLSParameters::Response &res) {
-  res.params[0] = rls.rls3d[2].getParameters()[0];
-  res.params[1] = rls.rls3d[2].getParameters()[1];
-  res.params[2] = rls.rls3d[2].getParameters()[2];
-  return true;
-}
+#include "numeric" 
 
 ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
-  : nh(""), pnh("~"), rls(k_x, k_y, k_z), tfListener(tfBuffer)
+  : nh(""), pnh("~"), tfListener(tfBuffer),
+    rls(k_x, k_y, k_z-1, {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0})
 {
   // srv
-  set_service = nh.advertiseService("/ObjectTrajectoryEstimator/set_rls_parameters", &ObjectTrajectoryEstimator::setRLSParameters, this);
-  get_service = nh.advertiseService("/ObjectTrajectoryEstimator/get_rls_parameters", &ObjectTrajectoryEstimator::getRLSParameters, this);
+  setService = nh.advertiseService("/ObjectTrajectoryEstimator/set_rls_parameters", &ObjectTrajectoryEstimator::setRLSParameters, this);
+  getService = nh.advertiseService("/ObjectTrajectoryEstimator/get_rls_parameters", &ObjectTrajectoryEstimator::getRLSParameters, this);
   
   // subscriber
-  point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::Callback, this);
-   
+  point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::callback, this);
+  
   // publisher
   now_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("now_state_output", 1);
   pred_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("pred_state_output", 1);
@@ -127,42 +22,44 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   // real_traj_pub = nh.advertise<tf2_msgs::TFMessage>(real_traj_output, 1);
   // pred_traj_pub = nh.advertise<tf2_msgs::TFMessage>(pred_traj_output, 1);
   
-  // get rosparam
+  // rosparam
   pnh.getParam("frame_id", frame_id);
   pnh.getParam("camera_frame", camera_frame);
   pnh.getParam("base_frame", base_frame);
-  pnh.getParam("bound_thr", bound_thr);
-  pnh.getParam("pred_time", pred_time);
   pnh.getParam("init_thr", init_thr);
   pnh.getParam("start_thr", start_thr);
+  pnh.getParam("bound_thr", bound_thr);
+  pnh.getParam("pred_time", pred_time);
+  pnh.getParam("x_init_theta", x_init_theta);
+  pnh.getParam("y_init_theta", y_init_theta);
+  pnh.getParam("z_init_theta", z_init_theta);
   
-  // header setup
+  // header
   // frame_id
   now_state.header.frame_id = base_frame;
   pred_state.header.frame_id = base_frame;
   now_state_pos.header.frame_id = base_frame;
   pred_state_pos.header.frame_id = base_frame;
-  // stamp
-  ros::Time tmp_time = ros::Time::now();
-  now_state.header.stamp = tmp_time;
-  pred_state.header.stamp = tmp_time;
-  now_state_pos.header.stamp = tmp_time;
-  pred_state_pos.header.stamp = tmp_time;
 
-  // fb_flag
+  // flag
   pred_state.fb_flag.data = false;
-
-  current_time = 0.0;
-  timeVector = Eigen::VectorXd::Zero(3);
-
-  ready_flag = true;  
+  ready_flag = true;
   ballSet_flag = false;
   loop_init = false;
   predict_flag = false;
-  // thetaInitialize = false;
+  theta_initialize = true;
+
+  // rosparamを使ってrlsを再初期化
+  // 今回はzの二次の係数は-0.5*gで固定し、xyz全て一次式でフィッティング
+  rls = RLS3D(k_x, k_y, k_z-1, x_init_theta, y_init_theta, z_init_theta); 
+  
+  current_time = 0.0;
+  rls_degree = 1; 
+  timeVector = Eigen::VectorXd::Zero(rls_degree+1); // [1, t]
 }
 
-void ObjectTrajectoryEstimator::Callback(const geometry_msgs::PointStamped::ConstPtr &msg){
+/* -- main -- */
+void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::ConstPtr &msg){
   // stampの更新 & dtの計算
   updateStamp();
   
@@ -176,7 +73,7 @@ void ObjectTrajectoryEstimator::Callback(const geometry_msgs::PointStamped::Cons
   if (predict_flag) calcPredState();
 
   // 値をpublish
-  Publish();
+  publish();
   
   // 値の保持
   prev_state = now_state;
@@ -251,21 +148,38 @@ void ObjectTrajectoryEstimator::stateManager() {
       ready_flag = false;
     }
   } else {
-    if (now_state.vel.z > 0) {
-      // ボールの速度が正のときは常に予測する
-      predict_flag = true;
-      pred_state.fb_flag.data = true;
-    } else if (now_state.vel.z <= 0) {
-      // ボールの速度が0以下のときは予測しない
+    if (now_state.pos.z > bound_thr) {
+      if (now_state.vel.z > 0) {
+	predict_flag = true;	
+      } else if (now_state.vel.z <= 0 && prev_state.vel.z > 0) {
+	predict_flag = false;
+	current_time += dt; // リセットしない
+      } else if (now_state.vel.z <= 0 && prev_state.vel.z <= 0) {
+	predict_flag = false;
+	current_time = 0.0; // リセットしてok
+      }
+    } else if (now_state.vel.z <= bound_thr) {
       predict_flag = false;
-      pred_state.fb_flag.data = false;
-
-      // rlsの共分散行列初期化 <- 次も同じくらいだと信じて行わないことにする
-      
-      // 時間のリセット
       current_time = 0.0;
+
+      // rlsの共分散行列初期化
+      // rls.reset();
+      rls.rls3d[2].reset();
     }
+
+    pred_state.fb_flag.data = predict_flag;
   }
+}
+
+/* -- rlsの初期値更新 -- */
+void ObjectTrajectoryEstimator::calcInitState() {
+  init_vel.push_back(now_state.vel.z);
+  if (init_vel.size() == 3) {
+    std::vector<double> new_theta = {now_state.pos.z, std::accumulate(init_vel.begin(), init_vel.end(), 0.0) / 3.0};
+    rls.rls3d[2].setParameters(new_theta);
+    theta_initialize = false;
+  }
+  // x,yもここで計算するようにする
 }
 
 void ObjectTrajectoryEstimator::calcPredState() {
@@ -276,8 +190,12 @@ void ObjectTrajectoryEstimator::calcPredState() {
     timeVector(i) = pow(current_time, i);
   }
 
-  // 係数の計算
-  std::vector<double> tmp_now_state = {now_state.pos.x, now_state.pos.y, now_state.pos.z};
+  // 以下の式の右辺の係数を推定する
+  // x             = vx_0*t + x_0
+  // y             = vy_0*t + y_0
+  // z + 0.5*g*t^2 = vz_0*t + z_0
+
+  std::vector<double> tmp_now_state = {now_state.pos.x, now_state.pos.y, now_state.pos.z - (-0.5*GRAVITY*pow(current_time, 2))};
   rls.update(timeVector, tmp_now_state);
   
   // 予測値の計算(最高到達点ver)
@@ -285,17 +203,24 @@ void ObjectTrajectoryEstimator::calcPredState() {
   pred_state.target_tm = rls.vertexTime - current_time;
   pred_state.pos.x = rls.getVertex()[0];
   pred_state.pos.y = rls.getVertex()[1];
-  pred_state.pos.z = rls.getVertex()[2];
+  pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
+
+  // pred_state.fb_flagを上書く
+  if (current_time > 0.150 || pred_state.target_tm < 0.25) {
+    pred_state.fb_flag.data = true;
+  } else {
+    pred_state.fb_flag.data = false;
+  }
   
   // todo: 速度
   
   // 確認用
   pred_state_pos.point.x = rls.getVertex()[0];
   pred_state_pos.point.y = rls.getVertex()[1];
-  pred_state_pos.point.z = rls.getVertex()[2];
+  pred_state_pos.point.z = rls.getVertex()[2];  
 }
 
-void ObjectTrajectoryEstimator::Publish(){
+void ObjectTrajectoryEstimator::publish(){
   now_state_pub.publish(now_state);
   pred_state_pub.publish(pred_state);
   now_state_pos_pub.publish(now_state_pos);
@@ -309,9 +234,25 @@ void ObjectTrajectoryEstimator::Publish(){
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "object_trajectory_estimate");
-  ObjectTrajectoryEstimator object_trajectory_estimator(1, 1, 2);
+  ObjectTrajectoryEstimator object_trajectory_estimator(1,1,2);
   
   while(ros::ok()){
     ros::spinOnce();
   }
+}
+
+// srv
+bool ObjectTrajectoryEstimator::setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request  &req,
+						 object_trajectory_estimator::SetRLSParameters::Response &res) {
+  std::vector<double> params(req.params.begin(), req.params.end());
+  bool success = rls.rls3d[2].setParameters(params);
+  res.success = success;
+  return true;
+}
+
+bool ObjectTrajectoryEstimator::getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request  &req,
+						 object_trajectory_estimator::GetRLSParameters::Response &res) {
+  res.params[0] = rls.rls3d[2].getParameters()[0];
+  res.params[1] = rls.rls3d[2].getParameters()[1];
+  return true;
 }

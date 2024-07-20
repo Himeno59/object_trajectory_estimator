@@ -8,27 +8,25 @@
 #endif
 
 /* ---------- RLS ---------- */
-RLS::RLS(int k) : degree(k), lambda(0.99) 
+RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(0.99) 
 {
-  if (degree == 2) {
-    theta = Eigen::VectorXd(3);
-    theta << -0.855, 4.3, -0.5*GRAVITY;
-  } else if (degree == 1) {
-    theta = Eigen::VectorXd(2);
-    theta << 0.0, 0.0;
-  }
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 2; // 最初は少し早く反応させる
+  theta.resize(k+1);
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e9;
+  setParameters(new_theta);
 }
 
 void RLS::update(const Eigen::VectorXd& x, double y) {
   // 観測値と予測値の誤差
   double e = y - x.dot(theta);
+  
   // ゲインのv計算
   Eigen::VectorXd K = P * x / (lambda + x.transpose() * P * x);
   Eigen::VectorXd prev_theta = theta;
+  
   // パラメータの更新
   theta += K * e;
-  // thetaにnanなどが含まれていた場合、直前の値を入れる
+  
+  // thetaにnanなどが含まれていた場合の処理 -> 直前の値を入れる
   if (theta.hasNaN() || (theta.array() == std::numeric_limits<double>::infinity()).any() || (theta.array() == -std::numeric_limits<double>::infinity()).any()) {
     theta = prev_theta;
   } else {
@@ -41,11 +39,15 @@ Eigen::VectorXd RLS::getParameters() const {
   return theta;
 }
 
-void RLS::setParameters(double theta0, double theta1, double theta2) {
-  if (theta.size() == 3) {
-    theta[0] = theta0;
-    theta[1] = theta1;
-    theta[2] = theta2;
+bool RLS::setParameters(std::vector<double>& new_theta) {
+  if (theta.size() == new_theta.size()) {
+    for (int i=0;i<theta.size();i++) {
+      theta[i] = new_theta[i];
+    }
+    return true;
+  } else {
+    std::cout << "not match degree" << std::endl;
+    return false;
   }
 }
 
@@ -60,15 +62,15 @@ double RLS::predict(double target_time) {
 
 void RLS::reset() {
   // 共分散行列の初期化
-  P = P*1.1;
-}
-
-void RLS::setInitialTheta(const Eigen::VectorXd& initial_theta) {
-  theta = initial_theta;
+  // 速度の項のみ初期化
+  P(1,1) = 1e9;
 }
 
 /* ---------- RLS3D ---------- */
-RLS3D::RLS3D(int k_x, int k_y, int k_z) : rls3d{RLS(k_x), RLS(k_y), RLS(k_z)} {
+RLS3D::RLS3D(int k_x, int k_y, int k_z,
+	     std::vector<double> x_new_theta, std::vector<double> y_new_theta, std::vector<double> z_new_theta)
+  : rls3d{RLS(k_x, x_new_theta), RLS(k_y, y_new_theta), RLS(k_z, z_new_theta)}
+{
   vertexPoint.resize(3);
 }
 
@@ -81,12 +83,18 @@ void RLS3D::update(const Eigen::VectorXd& x, std::vector<double> y) {
 }
 
 void RLS3D::calcVertex() {
-  vertexTime = - rls3d[2].theta(1)/(2*rls3d[2].theta(2));
+  vertexTime = rls3d[2].theta(1) / GRAVITY;
   for (int i=0;i<rls3d.size();i++) {
     vertexPoint[i] = rls3d[i].predict(vertexTime);
   }
 }
 
-std::vector<double> RLS3D::getVertex() {
+std::vector<double> RLS3D::getVertex() const {
   return vertexPoint;
+}
+
+void RLS3D::reset() {
+  for (int i=0;i<rls3d.size();i++) {
+    rls3d[i].reset();
+  }
 }

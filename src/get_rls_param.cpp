@@ -20,7 +20,6 @@ int main(int argc, char** argv)
         ROS_INFO("Parameters received:");
         ROS_INFO("Parameter 1: %f", srv.response.params[0]);
         ROS_INFO("Parameter 2: %f", srv.response.params[1]);
-        ROS_INFO("Parameter 3: %f", srv.response.params[2]);
     }
     else
     {

@@ -29,7 +29,10 @@
         init_thr: 0.0
         start_thr: -0.50
         pred_time: 0.10
-        bound_thr: -0.72
+        bound_thr: -0.80
+        x_init_theta: [ 0.70, 0.0]
+        y_init_theta: [-0.35, 0.0]
+        z_init_theta: [-0.85, 4.0]
       </rosparam>
     </node>
     
