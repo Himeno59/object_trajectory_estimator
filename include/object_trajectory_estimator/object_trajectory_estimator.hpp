@@ -34,16 +34,16 @@ private:
   ros::Subscriber point_sub;
   // output: 現在のBODY相対の物体位置、速度
   //         予測したBODY相対の物体の最高到達点、速度
-  ros::Publisher now_state_pub, pred_state_pub;          // to BasketballMotionController
-  ros::Publisher now_state_pos_pub, pred_state_pos_pub;  // to ros-visualization
+  ros::Publisher current_state_pub, pred_state_pub;          // to BasketballMotionController
+  ros::Publisher current_state_pos_pub, pred_state_pos_pub;  // to ros-visualization
   // ros::Publisher real_traj_pub, pred_traj_pub;
   
-  object_trajectory_estimator::BallStateStamped now_state, pred_state;
+  object_trajectory_estimator::BallStateStamped current_state, pred_state;
   object_trajectory_estimator::BallStateStamped prev_state; // 値保持用
-  geometry_msgs::PointStamped now_state_pos, pred_state_pos;
+  geometry_msgs::PointStamped current_state_pos, pred_state_pos;
   // tf2_msgs::TFMessage real_traj, pred_traj;
   
-  // デバッグ用: now_state_posをpred_time秒左に平行移動させたものをpublish
+  // デバッグ用: current_state_posをpred_time秒左に平行移動させたものをpublish
   ros::Publisher dummy_state_pos_pub;
   geometry_msgs::PointStamped dummy_state_pos;
 
@@ -51,7 +51,7 @@ private:
   void publish();
   void updateStamp();
   void stateManager();
-  void calcNowState(const geometry_msgs::PointStamped::ConstPtr &msg);
+  void calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg);
   void calcPredState();
   void calcInitState(); // rlsの初期値更新用
 
@@ -97,5 +97,4 @@ public:
 			object_trajectory_estimator::SetRLSParameters::Response &res);
   bool getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request  &req,
 			object_trajectory_estimator::GetRLSParameters::Response &res);
-  
 };

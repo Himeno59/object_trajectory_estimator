@@ -14,9 +14,9 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::callback, this);
   
   // publisher
-  now_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("now_state_output", 1);
+  current_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("current_state_output", 1);
   pred_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("pred_state_output", 1);
-  now_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("now_state_pos_output", 1);
+  current_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("current_state_pos_output", 1);
   pred_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("pred_state_pos_output", 1);
   dummy_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("dummy_state_pos_output", 1);
   // real_traj_pub = nh.advertise<tf2_msgs::TFMessage>(real_traj_output, 1);
@@ -36,9 +36,9 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   
   // header
   // frame_id
-  now_state.header.frame_id = base_frame;
+  current_state.header.frame_id = base_frame;
   pred_state.header.frame_id = base_frame;
-  now_state_pos.header.frame_id = base_frame;
+  current_state_pos.header.frame_id = base_frame;
   pred_state_pos.header.frame_id = base_frame;
 
   // flag
@@ -63,8 +63,8 @@ void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::Cons
   // stampの更新 & dtの計算
   updateStamp();
   
-  // 現在の(BODY相対の)objの状態 = now_state_pos/vel を計算
-  calcNowState(msg);
+  // 現在の(BODY相対の)objの状態 = current_state_pos/vel を計算
+  calcCurrentState(msg);
   
   // 状態の管理 + パラメタのリセット
   stateManager();
@@ -76,36 +76,36 @@ void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::Cons
   publish();
   
   // 値の保持
-  prev_state = now_state;
+  prev_state = current_state;
 }
 
 /* -- stampの更新 & dtの計算-- */
 void ObjectTrajectoryEstimator::updateStamp(){
   ros::Time now_time = ros::Time::now();
-  now_state.header.stamp = now_time; 
+  current_state.header.stamp = now_time; 
   pred_state.header.stamp = now_time;
-  now_state_pos.header.stamp = now_time; 
+  current_state_pos.header.stamp = now_time; 
   pred_state_pos.header.stamp = now_time;
   dummy_state_pos.header.stamp = now_time - ros::Duration(pred_time);
-  dt = (now_state.header.stamp - prev_state.header.stamp).toSec();
+  dt = (current_state.header.stamp - prev_state.header.stamp).toSec();
 }
 
-/* -- 現在の(BODY相対の)objの状態 = now_state_pos/vel を計算 -- */
-void ObjectTrajectoryEstimator::calcNowState(const geometry_msgs::PointStamped::ConstPtr &msg) {
+/* -- 現在の(BODY相対の)objの状態 = current_state_pos/vel を計算 -- */
+void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // 位置
   geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, msg);
-  now_state.pos.x = transformedPoint.point.x;
-  now_state.pos.y = transformedPoint.point.y;
-  now_state.pos.z = transformedPoint.point.z;
+  current_state.pos.x = transformedPoint.point.x;
+  current_state.pos.y = transformedPoint.point.y;
+  current_state.pos.z = transformedPoint.point.z;
   // 速度
-  now_state.vel.x = (now_state.pos.x - prev_state.pos.x) / dt;
-  now_state.vel.y = (now_state.pos.y - prev_state.pos.y) / dt;
-  now_state.vel.z = (now_state.pos.z - prev_state.pos.z) / dt;
+  current_state.vel.x = (current_state.pos.x - prev_state.pos.x) / dt;
+  current_state.vel.y = (current_state.pos.y - prev_state.pos.y) / dt;
+  current_state.vel.z = (current_state.pos.z - prev_state.pos.z) / dt;
 
   // 確認用
-  now_state_pos.point.x = transformedPoint.point.x;
-  now_state_pos.point.y = transformedPoint.point.y;
-  now_state_pos.point.z = transformedPoint.point.z;
+  current_state_pos.point.x = transformedPoint.point.x;
+  current_state_pos.point.y = transformedPoint.point.y;
+  current_state_pos.point.z = transformedPoint.point.z;
   dummy_state_pos.point.x = transformedPoint.point.x;
   dummy_state_pos.point.y = transformedPoint.point.y;
   dummy_state_pos.point.z = transformedPoint.point.z;
@@ -139,26 +139,26 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint
 void ObjectTrajectoryEstimator::stateManager() {
   // 動作開始の判定
   if (ready_flag) {
-    if (now_state.pos.z >= init_thr) {
+    if (current_state.pos.z >= init_thr) {
       // ボールをセットしたと判定
       ballSet_flag = true;
-    } else if (ballSet_flag && now_state.pos.z < start_thr) {
+    } else if (ballSet_flag && current_state.pos.z < start_thr) {
       // セットした後にある程度ボール位置が落ちてきたら動作が始まったと判定
       ballSet_flag = false;
       ready_flag = false;
     }
   } else {
-    if (now_state.pos.z > bound_thr) {
-      if (now_state.vel.z > 0) {
+    if (current_state.pos.z > bound_thr) {
+      if (current_state.vel.z > 0) {
 	predict_flag = true;	
-      } else if (now_state.vel.z <= 0 && prev_state.vel.z > 0) {
+      } else if (current_state.vel.z <= 0 && prev_state.vel.z > 0) {
 	predict_flag = false;
 	current_time += dt; // リセットしない
-      } else if (now_state.vel.z <= 0 && prev_state.vel.z <= 0) {
+      } else if (current_state.vel.z <= 0 && prev_state.vel.z <= 0) {
 	predict_flag = false;
 	current_time = 0.0; // リセットしてok
       }
-    } else if (now_state.vel.z <= bound_thr) {
+    } else if (current_state.vel.z <= bound_thr) {
       predict_flag = false;
       current_time = 0.0;
 
@@ -173,9 +173,9 @@ void ObjectTrajectoryEstimator::stateManager() {
 
 /* -- rlsの初期値更新 -- */
 void ObjectTrajectoryEstimator::calcInitState() {
-  init_vel.push_back(now_state.vel.z);
+  init_vel.push_back(current_state.vel.z);
   if (init_vel.size() == 3) {
-    std::vector<double> new_theta = {now_state.pos.z, std::accumulate(init_vel.begin(), init_vel.end(), 0.0) / 3.0};
+    std::vector<double> new_theta = {current_state.pos.z, std::accumulate(init_vel.begin(), init_vel.end(), 0.0) / 3.0};
     rls.rls3d[2].setParameters(new_theta);
     theta_initialize = false;
   }
@@ -195,8 +195,8 @@ void ObjectTrajectoryEstimator::calcPredState() {
   // y             = vy_0*t + y_0
   // z + 0.5*g*t^2 = vz_0*t + z_0
 
-  std::vector<double> tmp_now_state = {now_state.pos.x, now_state.pos.y, now_state.pos.z - (-0.5*GRAVITY*pow(current_time, 2))};
-  rls.update(timeVector, tmp_now_state);
+  std::vector<double> tmp_current_state = {current_state.pos.x, current_state.pos.y, current_state.pos.z - (-0.5*GRAVITY*pow(current_time, 2))};
+  rls.update(timeVector, tmp_current_state);
   
   // 予測値の計算(最高到達点ver)
   rls.calcVertex();
@@ -221,9 +221,9 @@ void ObjectTrajectoryEstimator::calcPredState() {
 }
 
 void ObjectTrajectoryEstimator::publish(){
-  now_state_pub.publish(now_state);
+  current_state_pub.publish(current_state);
   pred_state_pub.publish(pred_state);
-  now_state_pos_pub.publish(now_state_pos);
+  current_state_pos_pub.publish(current_state_pos);
   pred_state_pos_pub.publish(pred_state_pos);
   // real_traj_pub.publish(real_traj);
   // pred_trag_pub.publish(pred_traj);
