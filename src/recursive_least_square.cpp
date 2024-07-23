@@ -11,7 +11,9 @@
 RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(0.99) 
 {
   theta.resize(k+1);
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e9;
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1);
+  P(0,0) = 1e3;   // 初期位置はlaunchのパラメタの方でなるべく調整
+  P(1,1) = 1e9; // 初期速度に関してはPの値を大きくして速く追従するようにする
   setParameters(new_theta);
 }
 
@@ -63,7 +65,7 @@ double RLS::predict(double target_time) {
 void RLS::reset() {
   // 共分散行列の初期化
   // 速度の項のみ初期化
-  P(1,1) = 1e9;
+  P(1,1) = 1.0;
 }
 
 /* ---------- RLS3D ---------- */

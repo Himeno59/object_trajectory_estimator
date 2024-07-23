@@ -17,11 +17,11 @@
       <remap from="~point_input" to="$(arg point_input)" />
       <remap from="~current_state_output" to="$(arg current_state_output)" />
       <remap from="~pred_state_output" to="$(arg pred_state_output)" />
-      <remap from="~current_state_pos_output" to="$(arg curren_state_pos_output)" />
+      <remap from="~current_state_pos_output" to="$(arg current_state_pos_output)" />
       <remap from="~pred_state_pos_output" to="$(arg pred_state_pos_output)" />
       <remap from="~dummy_state_pos_output" to="$(arg dummy_state_pos_output)" />
       <remap from="~real_traj_output" to="$(arg real_traj_output)" />
-      <remap from="~pred_traj_output" to="$(arg PRED_traj_output)" />
+      <remap from="~pred_traj_output" to="$(arg pred_traj_output)" />
       <rosparam>
         frame_id: rs_l515_depth_optical_frame
         camera_frame: rs_l515_depth_optical_frame
@@ -32,7 +32,7 @@
         bound_thr: -0.80
         x_init_theta: [ 0.70, 0.0]
         y_init_theta: [-0.35, 0.0]
-        z_init_theta: [-0.85, 4.0]
+        z_init_theta: [-0.84, 4.0]
       </rosparam>
     </node>
     

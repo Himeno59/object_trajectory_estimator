@@ -40,7 +40,7 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   pred_state.header.frame_id = base_frame;
   current_state_pos.header.frame_id = base_frame;
   pred_state_pos.header.frame_id = base_frame;
-
+  
   // flag
   pred_state.fb_flag.data = false;
   ready_flag = true;
@@ -48,7 +48,7 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   loop_init = false;
   predict_flag = false;
   theta_initialize = true;
-
+  
   // rosparamを使ってrlsを再初期化
   // 今回はzの二次の係数は-0.5*gで固定し、xyz全て一次式でフィッティング
   rls = RLS3D(k_x, k_y, k_z-1, x_init_theta, y_init_theta, z_init_theta); 
@@ -56,6 +56,8 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   current_time = 0.0;
   rls_degree = 1; 
   timeVector = Eigen::VectorXd::Zero(rls_degree+1); // [1, t]
+
+  window_size = 3;
 }
 
 /* -- main -- */
@@ -92,8 +94,10 @@ void ObjectTrajectoryEstimator::updateStamp(){
 
 /* -- 現在の(BODY相対の)objの状態 = current_state_pos/vel を計算 -- */
 void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg) {
+  // 平滑化
+  geometry_msgs::PointStamped filteredPoint = applyFilter(msg);
   // 位置
-  geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, msg);
+  geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, filteredPoint);
   current_state.pos.x = transformedPoint.point.x;
   current_state.pos.y = transformedPoint.point.y;
   current_state.pos.z = transformedPoint.point.z;
@@ -101,7 +105,7 @@ void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamp
   current_state.vel.x = (current_state.pos.x - prev_state.pos.x) / dt;
   current_state.vel.y = (current_state.pos.y - prev_state.pos.y) / dt;
   current_state.vel.z = (current_state.pos.z - prev_state.pos.z) / dt;
-
+  
   // 確認用
   current_state_pos.point.x = transformedPoint.point.x;
   current_state_pos.point.y = transformedPoint.point.y;
@@ -111,11 +115,51 @@ void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamp
   dummy_state_pos.point.z = transformedPoint.point.z;
 }
 
+/* -- filter -- */
+geometry_msgs::PointStamped ObjectTrajectoryEstimator::applyFilter(const geometry_msgs::PointStamped::ConstPtr &msg) {
+  // windowへの追加
+  Eigen::Vector3d pos(msg->point.x, msg->point.y, msg->point.z);
+  window.push_back(pos);
+  if (window.size() > window_size) window.erase(window.begin());
+
+  // // average filter
+  // Eigen::Vector3d sum;
+  // for (int i=0;i<window.size();i++) {
+  //   sum += window[i];
+  // }
+  // Eigen::Vector3d ave = sum / window.size();
+  // geometry_msgs::PointStamped filteredPoint;
+  // filteredPoint.point.x = ave(0);
+  // filteredPoint.point.y = ave(1);
+  // filteredPoint.point.z = ave(2);
+  // return filteredPoint;
+
+  // median filter
+  std::vector<double> median_value = std::vector<double>(3); // xyz
+  for (int i=0;i<3;i++) {
+    std::vector<double> tmp_data;
+    for (int j=0;j<window.size();j++) {
+      tmp_data.push_back(window[j](i));
+    }
+    std::sort(tmp_data.begin(), tmp_data.end());
+    size_t median_index = window.size() / 2;
+    median_value[i] = tmp_data[median_index];
+    // std::copy(tmp_data.begin(), tmp_data.end(), std::ostream_iterator<double>(std::cout, " "));
+    // std::cout << std::endl;
+    // std::cout << "median_value: " << median_value[i] << std::endl;
+  }
+  geometry_msgs::PointStamped filteredPoint;
+  filteredPoint.point.x = median_value[0];
+  filteredPoint.point.y = median_value[1];
+  filteredPoint.point.z = median_value[2];
+  return filteredPoint;
+}
+
 /* -- カメラ->BODYの座標変換 -- */
 geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint
-(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped::ConstPtr &msg) {
+(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &filteredPoint) {
   // 半球殻の重心->球の重心
-  Eigen::Vector3d pos(msg->point.x, msg->point.y, msg->point.z);
+  Eigen::Vector3d pos(filteredPoint.point.x, filteredPoint.point.y, filteredPoint.point.z);
   Eigen::Vector3d fixed_pos;
   geometry_msgs::PointStamped tmp_point;
   double D = pos.norm();
@@ -148,15 +192,30 @@ void ObjectTrajectoryEstimator::stateManager() {
       ready_flag = false;
     }
   } else {
+    // 速度ver
+    // if (current_state.vel.z > 0) {
+    //   predict_flag = true;
+    // } else if (current_state.vel.z <= 0) {
+    //   predict_flag = false;
+    //   current_time = 0.0;
+    //   // rlsの共分散行列初期化
+    //   // rls.reset();
+    //   rls.rls3d[2].reset();
+    // }
+
+    // 高さ+速度ver
     if (current_state.pos.z > bound_thr) {
-      if (current_state.vel.z > 0) {
-	predict_flag = true;	
-      } else if (current_state.vel.z <= 0 && prev_state.vel.z > 0) {
+      if (current_state.vel.z > 0 && prev_state.vel.z > 0) {
+    	predict_flag = true;
+      } else if (current_state.vel.z > 0 && prev_state.vel.z <= 0) {
 	predict_flag = false;
 	current_time += dt; // リセットしない
+      } else if (current_state.vel.z <= 0 && prev_state.vel.z > 0) {
+    	predict_flag = false;
+    	current_time += dt; // リセットしない
       } else if (current_state.vel.z <= 0 && prev_state.vel.z <= 0) {
-	predict_flag = false;
-	current_time = 0.0; // リセットしてok
+    	predict_flag = false;
+    	current_time = 0.0; // リセットしてok
       }
     } else if (current_state.vel.z <= bound_thr) {
       predict_flag = false;
@@ -204,6 +263,11 @@ void ObjectTrajectoryEstimator::calcPredState() {
   pred_state.pos.x = rls.getVertex()[0];
   pred_state.pos.y = rls.getVertex()[1];
   pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
+  // if (pred_state.target_tm < 0.30) {
+  //   pred_state.pos.x = rls.getVertex()[0];
+  //   pred_state.pos.y = rls.getVertex()[1];
+  //   pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
+  // }
 
   // pred_state.fb_flagを上書く
   if (current_time > 0.150 || pred_state.target_tm < 0.25) {

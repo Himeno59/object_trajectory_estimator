@@ -55,10 +55,15 @@ private:
   void calcPredState();
   void calcInitState(); // rlsの初期値更新用
 
+  // 平滑化
+  int window_size;
+  std::vector<Eigen::Vector3d> window;
+  geometry_msgs::PointStamped applyFilter(const geometry_msgs::PointStamped::ConstPtr &msg);
+
   // tf変換
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener;
-  geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped::ConstPtr &msg);
+  geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &filteredPoint);
 
   // rls
   int rls_degree;
