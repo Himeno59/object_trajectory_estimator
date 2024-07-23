@@ -8,12 +8,11 @@
 #endif
 
 /* ---------- RLS ---------- */
-RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(0.99) 
+RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(1.0) 
 {
   theta.resize(k+1);
   P = Eigen::MatrixXd::Identity(degree+1, degree+1);
-  P(0,0) = 1e3;   // 初期位置はlaunchのパラメタの方でなるべく調整
-  P(1,1) = 1e9; // 初期速度に関してはPの値を大きくして速く追従するようにする
+  P(0,0) = 0.10;
   setParameters(new_theta);
 }
 

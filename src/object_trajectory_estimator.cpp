@@ -192,39 +192,56 @@ void ObjectTrajectoryEstimator::stateManager() {
       ready_flag = false;
     }
   } else {
-    // 速度ver
-    // if (current_state.vel.z > 0) {
-    //   predict_flag = true;
-    // } else if (current_state.vel.z <= 0) {
-    //   predict_flag = false;
-    //   current_time = 0.0;
-    //   // rlsの共分散行列初期化
-    //   // rls.reset();
-    //   rls.rls3d[2].reset();
-    // }
-
-    // 高さ+速度ver
-    if (current_state.pos.z > bound_thr) {
-      if (current_state.vel.z > 0 && prev_state.vel.z > 0) {
-    	predict_flag = true;
-      } else if (current_state.vel.z > 0 && prev_state.vel.z <= 0) {
-	predict_flag = false;
-	current_time += dt; // リセットしない
-      } else if (current_state.vel.z <= 0 && prev_state.vel.z > 0) {
-    	predict_flag = false;
-    	current_time += dt; // リセットしない
-      } else if (current_state.vel.z <= 0 && prev_state.vel.z <= 0) {
-    	predict_flag = false;
-    	current_time = 0.0; // リセットしてok
-      }
-    } else if (current_state.vel.z <= bound_thr) {
+    // 速度ver1
+    if (current_state.vel.z > 0) {
+      predict_flag = true;
+    } else if (current_state.vel.z <= 0) {
       predict_flag = false;
       current_time = 0.0;
-
       // rlsの共分散行列初期化
       // rls.reset();
       rls.rls3d[2].reset();
     }
+
+    // 速度ver2
+    if (current_state.vel.z > 0 && prev_state.vel.z > 0) {
+      predict_flag = true;
+    } else if (current_state.vel.z > 0 && prev_state.vel.z <= 0) {
+      predict_flag = false;
+      current_time += dt; // リセットしない
+    } else if (current_state.vel.z <= 0 && prev_state.vel.z > 0) {
+      predict_flag = false;
+      current_time += dt; // リセットしない
+    } else if (current_state.vel.z <= 0 && prev_state.vel.z <= 0) {
+      predict_flag = false;
+      current_time = 0.0; // リセットしてok
+      // rlsの共分散行列初期化
+      // rls.reset();
+      rls.rls3d[2].reset();
+    } 
+
+    // // 高さ+速度ver
+    // if (current_state.pos.z > bound_thr) {
+    //   if (current_state.vel.z > 0 && prev_state.vel.z > 0) {
+    // 	predict_flag = true;
+    //   } else if (current_state.vel.z > 0 && prev_state.vel.z <= 0) {
+    // 	predict_flag = false;
+    // 	current_time += dt; // リセットしない
+    //   } else if (current_state.vel.z <= 0 && prev_state.vel.z > 0) {
+    // 	predict_flag = false;
+    // 	current_time += dt; // リセットしない
+    //   } else if (current_state.vel.z <= 0 && prev_state.vel.z <= 0) {
+    // 	predict_flag = false;
+    // 	current_time = 0.0; // リセットしてok
+    //   }
+    // } else if (current_state.vel.z <= bound_thr) {
+    //   predict_flag = false;
+    //   current_time = 0.0;
+
+    //   // rlsの共分散行列初期化
+    //   // rls.reset();
+    //   rls.rls3d[2].reset();
+    // }
 
     pred_state.fb_flag.data = predict_flag;
   }
