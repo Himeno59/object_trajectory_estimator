@@ -1,27 +1,27 @@
 <!-- -*- mode: xml -*- --><!-- -*- mode: xml -*- -->
 <launch>
-  <arg name="DEFAULT_NAMESPACE" default="ObjectTrajectoryEstimator" />
+  <arg name="default_namespace" default="ObjectTrajectoryEstimator" />
 
-  <arg name="POINT_INPUT" default="/centroid_publisher/output/point" />
-  <arg name="NOW_STATE_OUTPUT" default="now_ball_state" />
-  <arg name="PRED_STATE_OUTPUT" default="pred_ball_state" />
-  <arg name="NOW_STATE_POS_OUTPUT" default="now_ball_state_pos" />
-  <arg name="PRED_STATE_POS_OUTPUT" default="pred_ball_state_pos" />
-  <arg name="DUMMY_STATE_POS_OUTPUT" default="dummy_state_pos" />
-  <arg name="REAL_TRAJ_OUTPUT" default="real_ball_trajectory" />
-  <arg name="PRED_TRAJ_OUTPUT" default="pred_ball_trajectory" />
+  <arg name="point_input" default="/centroid_publisher/output/point" />
+  <arg name="current_state_output" default="current_ball_state" />
+  <arg name="pred_state_output" default="pred_ball_state" />
+  <arg name="current_state_pos_output" default="current_ball_state_pos" />
+  <arg name="pred_state_pos_output" default="pred_ball_state_pos" />
+  <arg name="dummy_state_pos_output" default="dummy_state_pos" />
+  <arg name="real_traj_output" default="real_ball_trajectory" />
+  <arg name="pred_traj_output" default="pred_ball_trajectory" />
     
-  <group ns="$(arg DEFAULT_NAMESPACE)">
+  <group ns="$(arg default_namespace)">
     <node pkg="object_trajectory_estimator" type="object_trajectory_estimator"
 	  name="ball_estimate" output="screen">
-      <remap from="~point_input" to="$(arg POINT_INPUT)" />
-      <remap from="~now_state_output" to="$(arg NOW_STATE_OUTPUT)" />
-      <remap from="~pred_state_output" to="$(arg PRED_STATE_OUTPUT)" />
-      <remap from="~now_state_pos_output" to="$(arg NOW_STATE_POS_OUTPUT)" />
-      <remap from="~pred_state_pos_output" to="$(arg PRED_STATE_POS_OUTPUT)" />
-      <remap from="~dummy_state_pos_output" to="$(arg DUMMY_STATE_POS_OUTPUT)" />
-      <remap from="~real_traj_output" to="$(arg REAL_TRAJ_OUTPUT)" />
-      <remap from="~pred_traj_output" to="$(arg PRED_TRAJ_OUTPUT)" />
+      <remap from="~point_input" to="$(arg point_input)" />
+      <remap from="~current_state_output" to="$(arg current_state_output)" />
+      <remap from="~pred_state_output" to="$(arg pred_state_output)" />
+      <remap from="~current_state_pos_output" to="$(arg current_state_pos_output)" />
+      <remap from="~pred_state_pos_output" to="$(arg pred_state_pos_output)" />
+      <remap from="~dummy_state_pos_output" to="$(arg dummy_state_pos_output)" />
+      <remap from="~real_traj_output" to="$(arg real_traj_output)" />
+      <remap from="~pred_traj_output" to="$(arg pred_traj_output)" />
       <rosparam>
         frame_id: rs_l515_depth_optical_frame
         camera_frame: rs_l515_depth_optical_frame
@@ -29,7 +29,10 @@
         init_thr: 0.0
         start_thr: -0.50
         pred_time: 0.10
-        bound_thr: -0.72
+        bound_thr: -0.80
+        x_init_theta: [ 0.70, 0.0]
+        y_init_theta: [-0.35, 0.0]
+        z_init_theta: [-0.84, 4.0]
       </rosparam>
     </node>
     

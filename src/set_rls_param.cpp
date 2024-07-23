@@ -4,9 +4,9 @@
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "set_parameters_client");
-  if (argc != 4)
+  if (argc != 3)
     {
-      ROS_INFO("usage: set_parameters_client X Y Z");
+      ROS_INFO("usage: set_parameters_client pos vel");
       return 1;
     }
 
@@ -16,7 +16,6 @@ int main(int argc, char **argv)
   object_trajectory_estimator::SetRLSParameters srv;
   srv.request.params[0] = atof(argv[1]);
   srv.request.params[1] = atof(argv[2]);
-  srv.request.params[2] = atof(argv[3]);
   
   if (client.call(srv))
     {
