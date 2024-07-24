@@ -280,14 +280,14 @@ void ObjectTrajectoryEstimator::calcPredState() {
   pred_state.pos.x = rls.getVertex()[0];
   pred_state.pos.y = rls.getVertex()[1];
   pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
-  // if (pred_state.target_tm < 0.30) {
-  //   pred_state.pos.x = rls.getVertex()[0];
-  //   pred_state.pos.y = rls.getVertex()[1];
-  //   pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
-  // }
+  if (pred_state.target_tm < 0.30) {
+    pred_state.pos.x = rls.getVertex()[0];
+    pred_state.pos.y = rls.getVertex()[1];
+    pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
+  }
 
   // pred_state.fb_flagを上書く
-  if (current_time > 0.150 || pred_state.target_tm < 0.25) {
+  if (pred_state.target_tm < 0.30) {
     pred_state.fb_flag.data = true;
   } else {
     pred_state.fb_flag.data = false;
