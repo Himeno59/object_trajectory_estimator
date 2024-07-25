@@ -30,6 +30,7 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
   pnh.getParam("start_thr", start_thr);
   pnh.getParam("bound_thr", bound_thr);
   pnh.getParam("pred_time", pred_time);
+  pnh.getParam("wait_fb", wait_fb);
   pnh.getParam("x_init_theta", x_init_theta);
   pnh.getParam("y_init_theta", y_init_theta);
   pnh.getParam("z_init_theta", z_init_theta);
@@ -280,14 +281,14 @@ void ObjectTrajectoryEstimator::calcPredState() {
   pred_state.pos.x = rls.getVertex()[0];
   pred_state.pos.y = rls.getVertex()[1];
   pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
-  if (pred_state.target_tm < 0.30) {
+  if (current_time > wait_fb) {
     pred_state.pos.x = rls.getVertex()[0];
     pred_state.pos.y = rls.getVertex()[1];
     pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
   }
 
   // pred_state.fb_flagを上書く
-  if (pred_state.target_tm < 0.30) {
+  if (current_time > wait_fb) {
     pred_state.fb_flag.data = true;
   } else {
     pred_state.fb_flag.data = false;

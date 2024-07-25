@@ -89,6 +89,7 @@ private:
   double start_thr;
   double bound_thr; // 今のjaxonの姿勢から出せるようにしたい
   double pred_time;
+  double wait_fb;
   std::vector<double> x_init_theta;
   std::vector<double> y_init_theta;
   std::vector<double> z_init_theta;
