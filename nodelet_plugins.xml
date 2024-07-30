@@ -1,0 +1,9 @@
+<library path="lib/libobject_trajectory_estimator">
+  <class name="object_trajectory_estimator/ObjectTrajectoryEstimator"
+	 type="object_trajectory_estimator::ObjectTrajectoryEstimator"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      This is the ObjectTrajectoryEstimator nodelet.
+    </description>
+  </class>
+</library>

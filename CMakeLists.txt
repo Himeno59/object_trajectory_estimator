@@ -8,9 +8,11 @@ project(object_trajectory_estimator)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  geometry_msgs
   roscpp
   rospy
+  pluginlib
+  nodelet
+  geometry_msgs
   std_msgs
   tf2_msgs
   tf2_geometry_msgs
@@ -111,7 +113,7 @@ generate_messages(
 catkin_package(
   # INCLUDE_DIRS include
   # LIBRARIES basketball_motion
-  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs tf2_msgs tf2_geometry_msgs message_runtime
+  CATKIN_DEPENDS geometry_msgs roscpp rospy std_msgs tf2_msgs tf2_geometry_msgs message_runtime nodelet pluginlib
   # DEPENDS system_lib
 )
 
@@ -127,8 +129,14 @@ include_directories(
 )
 
 ## Declare a C++ library
-# add_library(
-#   )
+add_library(${PROJECT_NAME}
+  src/object_trajectory_estimator_nodelet.cpp
+  src/recursive_least_square.cpp
+  src/least_square.cpp
+  )
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -139,21 +147,11 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/basketball_motion_node.cpp)
-add_executable(object_trajectory_estimator
-  src/object_trajectory_estimator.cpp
-  src/recursive_least_square.cpp
-  src/least_square.cpp
-  )
-target_link_libraries(object_trajectory_estimator
-  ${catkin_LIBRARIES}
-  )
-
-
-## srv
-add_executable(set_rls_param src/set_rls_param.cpp)
-target_link_libraries(set_rls_param ${catkin_LIBRARIES})
-add_executable(get_rls_param src/get_rls_param.cpp)
-target_link_libraries(get_rls_param ${catkin_LIBRARIES})
+# add_executable(object_trajectory_estimator
+#   src/object_trajectory_estimator.cpp
+#   src/recursive_least_square.cpp
+#   src/least_square.cpp
+#   )
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
