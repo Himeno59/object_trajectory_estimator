@@ -8,7 +8,9 @@
 class RLS
 {
 public:
+  RLS();
   RLS(int k, std::vector<double> new_theta);
+  
   void update(const Eigen::VectorXd& x, double y); // x = [1, x_n, ~ , x_n^k].T, y = y_n 
   double predict(double target_time);
   void reset();
@@ -33,8 +35,10 @@ private:
 class RLS3D
 {
 public:
+  RLS3D();
   RLS3D(int k_x, int k_y, int k_z,
 	std::vector<double> x_new_theta, std::vector<double> y_new_theta, std::vector<double> z_new_theta);
+  
   void update(const Eigen::VectorXd& x, std::vector<double> y);
   void calcVertex();
   std::vector<double> getVertex() const;

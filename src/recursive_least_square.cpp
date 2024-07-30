@@ -8,6 +8,8 @@
 #endif
 
 /* ---------- RLS ---------- */
+RLS::RLS() {}
+
 RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(1.0) 
 {
   theta.resize(k+1);
@@ -70,6 +72,8 @@ void RLS::reset() {
 }
 
 /* ---------- RLS3D ---------- */
+RLS3D::RLS3D() {}
+
 RLS3D::RLS3D(int k_x, int k_y, int k_z,
 	     std::vector<double> x_new_theta, std::vector<double> y_new_theta, std::vector<double> z_new_theta)
   : rls3d{RLS(k_x, x_new_theta), RLS(k_y, y_new_theta), RLS(k_z, z_new_theta)}
