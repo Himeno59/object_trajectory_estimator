@@ -18,13 +18,14 @@ public:
   bool setParameters(std::vector<double>& new_theta);
   
 public:
-  int degree;                     // k次の多項式モデルでフィッティング
-  double lambda;                  // 忘却係数
-  Eigen::VectorXd theta;          // パラメータベクトル(求める値)
-  double predictValue;            // 予測値
+  int degree;                      // k次の多項式モデルでフィッティング
+  double lambda;                   // 忘却係数
+  std::vector<double> init_theta;  // 理想的な軌道のパラメタ
+  Eigen::VectorXd theta;           // パラメータベクトル(求める値) todo: eigenかstd::vectorどっちかに揃える
+  double predictValue;             // 予測値
   
 private:
-  Eigen::MatrixXd P;              // 共分散行列
+  Eigen::MatrixXd P;               // 共分散行列
 };
 
 /* -------------------------------------------------------------------------------------------- */

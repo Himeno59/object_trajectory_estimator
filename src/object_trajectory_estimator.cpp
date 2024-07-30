@@ -64,7 +64,7 @@ ObjectTrajectoryEstimator::ObjectTrajectoryEstimator(int k_x, int k_y, int k_z)
 /* -- main -- */
 void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::ConstPtr &msg){
   // stampの更新 & dtの計算
-  updateStamp();
+  updateStamp(msg);
   
   // 現在の(BODY相対の)objの状態 = current_state_pos/vel を計算
   calcCurrentState(msg);
@@ -83,13 +83,12 @@ void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::Cons
 }
 
 /* -- stampの更新 & dtの計算-- */
-void ObjectTrajectoryEstimator::updateStamp(){
-  ros::Time now_time = ros::Time::now();
-  current_state.header.stamp = now_time; 
-  pred_state.header.stamp = now_time;
-  current_state_pos.header.stamp = now_time; 
-  pred_state_pos.header.stamp = now_time;
-  dummy_state_pos.header.stamp = now_time - ros::Duration(pred_time);
+void ObjectTrajectoryEstimator::updateStamp(const geometry_msgs::PointStamped::ConstPtr &msg){
+  current_state.header.stamp = msg->header.stamp;
+  pred_state.header.stamp = msg->header.stamp;
+  current_state_pos.header.stamp = msg->header.stamp; 
+  pred_state_pos.header.stamp = msg->header.stamp;
+  dummy_state_pos.header.stamp = msg->header.stamp - ros::Duration(pred_time);
   dt = (current_state.header.stamp - prev_state.header.stamp).toSec();
 }
 

@@ -49,7 +49,7 @@ private:
 
   void callback(const geometry_msgs::PointStamped::ConstPtr &msg);
   void publish();
-  void updateStamp();
+  void updateStamp(const geometry_msgs::PointStamped::ConstPtr &msg);
   void stateManager();
   void calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg);
   void calcPredState();
