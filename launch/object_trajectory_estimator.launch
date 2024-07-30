@@ -1,95 +1,33 @@
 <!-- -*- mode: xml -*- --><!-- -*- mode: xml -*- -->
 <launch>
-  <arg name="point_input" default="/centroid_publisher/output/point" />
-  <arg name="current_state_output" default="current_ball_state" />
-  <arg name="pred_state_output" default="pred_ball_state" />
-
-  <arg name="queue_size" default="5" />
-  <arg name="launch_manager" default="true" />
-  <arg name="manager" default="manager" />
-
-  <!-- nodelet manager -->
-  <node name="$(arg manager)"
-        pkg="nodelet" type="nodelet"
-        args="manager" output="screen"
-        if="$(arg launch_manager)" />
-
-  <!-- color_filter -->
-  <include file="$(find opencv_apps)/launch/hsv_color_filter.launch" >
-    <arg name="debug_view" value="false" />
-    <arg name="image" value="/rs_l515/color/image_raw" />
-    <arg name="h_limit_max" default="15" doc="The maximum allowed field value Hue" />
-    <arg name="h_limit_min" default="360" doc="The minimum allowed field value Hue" />
-    <arg name="s_limit_max" default="95" doc="The maximum allowed field value Saturation" />
-    <arg name="s_limit_min" default="255" doc="The minimum allowed field value Saturation" />
-    <arg name="v_limit_max" default="255" doc="The maximum allowed field value Value" />
-    <arg name="v_limit_min" default="0" doc="The minimum allowed field value Value" />
-  </include>
-
-  <!-- remove noise -->
-  <node name="morphology_open"
-        pkg="nodelet" type="nodelet"
-        args="load jsk_perception/Opening $(arg manager)"
-        output="screen" >
-    <remap from="~input" to="/hsv_color_filter/image" />
-    <param name="size" value="5" />
-  </node>
-
-  <!-- apply mask -->
-  <node name="apply_mask_image"
-        pkg="nodelet" type="nodelet"
-        args="load jsk_perception/ApplyMaskImage $(arg manager)"
-        respawn="true" >
-    <remap from="~input" to="/rs_l515/aligned_depth_to_color/image_raw" />
-    <remap from="~input/mask" to="/morphology_open/output" />
-    <rosparam>
-      approximate_sync: true
-      clip: false
-    </rosparam>
-  </node>
-
-  <!-- rgb -> pointcloud -->
-  <node name="points_xyzrgb"
-        pkg="nodelet" type="nodelet"
-        args="load depth_image_proc/point_cloud_xyzrgb $(arg manager)" >
-    <remap from="rgb/camera_info"             to="/rs_l515/color/camera_info"/>
-    <remap from="rgb/image_rect_color"        to="/rs_l515/color/image_raw"/>
-    <remap from="depth_registered/image_rect" to="/apply_mask_image/output"/>
-    <remap from="depth_registered/points"     to="/filtered/aligned_depth_to_color/points"/>
-    <param name="queue_size" type="int" value="$(arg queue_size)"/>
-  </node>
-
-  <!-- calc pointcloud_centroid -->
-  <node name="centroid_publisher"
-        pkg="nodelet" type="nodelet"
-        args="load jsk_pcl_utils/CentroidPublisher $(arg manager)">
-    <remap from="~input" to="/filtered/aligned_depth_to_color/points" />
-    <rosparam>
-      publish_tf: true
-    </rosparam>
-  </node>
-
-  <!-- object_trajectory_estimator -->
-  <node name="object_trajectory_estimator"
-  	pkg="nodelet" type="nodelet"
-  	args="load object_trajectory_estimator/ObjectTrajectoryEstimator $(arg manager)"
-  	output="screen">
-    <remap from="~point_input" to="$(arg point_input)" />
-    <remap from="~current_state_output" to="$(arg current_state_output)" />
-    <remap from="~pred_state_output" to="$(arg pred_state_output)" />
-    <rosparam>
-      frame_id: rs_l515_depth_optical_frame
-      camera_frame: rs_l515_depth_optical_frame
-      base_frame: BODY
-      init_thr: 0.0
-      start_thr: -0.50
-      pred_time: 0.10
-      bound_thr: -0.80
-      wait_fb: 0.10
-      x_init_theta: [ 0.90, 0.0]
-      y_init_theta: [-0.35, 0.0]
-      z_init_theta: [-0.84, 4.1]
-    </rosparam>
-  </node>
+  <arg name="manager"                  default="manager"/>
+  <arg name="namespace"                default=""/>
+  <arg name="point_input"              default="/centroid_publisher/output/point" />
+  <arg name="current_state_output"     default="current_ball_state" />
+  <arg name="pred_state_output"        default="pred_ball_state" />
   
+  <group ns="$(arg namespace)">
+    <node name="object_trajectory_estimator"
+	  pkg="nodelet" type="nodelet"
+	  args="load object_trajectory_estimator/ObjectTrajectoryEstimator $(arg manager)"
+	  output="screen">
+      <remap from="~point_input" to="$(arg point_input)" />
+      <remap from="~current_state_output" to="$(arg current_state_output)" />
+      <remap from="~pred_state_output" to="$(arg pred_state_output)" />
+      <rosparam>
+        frame_id: rs_l515_depth_optical_frame
+        camera_frame: rs_l515_depth_optical_frame
+        base_frame: BODY
+        init_thr: 0.0
+        start_thr: -0.50
+        pred_time: 0.10
+        bound_thr: -0.80
+        wait_fb: 0.10
+        x_init_theta: [ 0.90, 0.0]
+        y_init_theta: [-0.35, 0.0]
+        z_init_theta: [-0.84, 4.1]	
+      </rosparam>
+    </node>
+  </group>
+
 </launch>
