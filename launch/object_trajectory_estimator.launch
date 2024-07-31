@@ -2,9 +2,9 @@
 <launch>
   <arg name="manager"                  default="manager"/>
   <arg name="namespace"                default=""/>
-  <arg name="point_input"              default="/centroid_publisher/output/point" />
-  <arg name="current_state_output"     default="current_ball_state" />
-  <arg name="pred_state_output"        default="pred_ball_state" />
+  <arg name="point_input"              default="centroid_publisher/output/point" />
+  <arg name="current_state_output"     default="object_trajectory_estimator/current_ball_state" />
+  <arg name="pred_state_output"        default="object_trajectory_estimator/pred_ball_state" />
   
   <group ns="$(arg namespace)">
     <node name="object_trajectory_estimator"
@@ -25,7 +25,7 @@
         wait_fb: 0.10
         x_init_theta: [ 0.90, 0.0]
         y_init_theta: [-0.35, 0.0]
-        z_init_theta: [-0.84, 4.1]	
+        z_init_theta: [-0.84, 4.1]
       </rosparam>
     </node>
   </group>
