@@ -103,8 +103,7 @@ void ObjectTrajectoryEstimator::stateManager() {
       predict_flag = false;
       current_time = 0.0;
       // rlsの共分散行列初期化
-      // rls.reset();
-      rls.rls3d[2].reset();
+      rls.reset();
     }
 
     // 速度ver2
@@ -122,6 +121,9 @@ void ObjectTrajectoryEstimator::stateManager() {
       // rlsの共分散行列初期化
       // rls.reset();
       rls.rls3d[2].reset();
+
+      // 次の目標軌道
+      // setParamters()~~
     } 
 
     // // 高さ+速度ver
