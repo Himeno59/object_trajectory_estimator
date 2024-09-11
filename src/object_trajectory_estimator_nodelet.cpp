@@ -162,7 +162,6 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
     //   rls.reset();
     // }
     
-    pred_state.fb_flag.data = predict_flag;
   }
 }
 
@@ -198,19 +197,12 @@ void ObjectTrajectoryEstimator::calcPredState() {
   
   // 予測値の計算(最高到達点ver)
   rls.calcVertex();
-  pred_state.target_tm = rls.vertexTime - current_time;
-  pred_state.pos.x = rls.getVertex()[0];
-  pred_state.pos.y = rls.getVertex()[1];
-  pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
+  pred_state.target_tm = rls.vertexTime - current_time; // 右下に下がる方向の直線になる
   if (current_time > wait_fb) {
+    pred_state.fb_flag.data = true;
     pred_state.pos.x = rls.getVertex()[0];
     pred_state.pos.y = rls.getVertex()[1];
     pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
-  }
-
-  // pred_state.fb_flagを上書く
-  if (current_time > wait_fb) {
-    pred_state.fb_flag.data = true;
   } else {
     pred_state.fb_flag.data = false;
   }
