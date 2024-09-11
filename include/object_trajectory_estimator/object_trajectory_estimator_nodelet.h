@@ -38,13 +38,14 @@ namespace object_trajectory_estimator {
     void callback(const geometry_msgs::PointStamped::ConstPtr &msg);
     void publish();
     void updateStamp(const geometry_msgs::PointStamped::ConstPtr &msg);
-    void stateManager();
+    void stateManager(const geometry_msgs::PointStamped::ConstPtr &point);
+    
     void calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg);
     void calcPredState();
     
     void calcInitState();
     geometry_msgs::PointStamped applyFilter(const geometry_msgs::PointStamped::ConstPtr &msg);
-    geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &filteredPoint);
+    geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg);
 
     bool setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request &req, object_trajectory_estimator::SetRLSParameters::Response &res);
     bool getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request &req, object_trajectory_estimator::GetRLSParameters::Response &res);

@@ -57,11 +57,11 @@ void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::Cons
   // stampの更新 & dtの計算
   updateStamp(msg);
   
+  // 状態の管理 + パラメタのリセット
+  stateManager(msg);
+
   // 現在の(BODY相対の)objの状態 = current_state_pos/vel を計算
   calcCurrentState(msg);
-  
-  // 状態の管理 + パラメタのリセット
-  stateManager();
 
   // 予測フラグが立っている場合、予測する
   if (predict_flag) calcPredState();
@@ -84,71 +84,84 @@ void ObjectTrajectoryEstimator::updateStamp(const geometry_msgs::PointStamped::C
   dt = (current_state.header.stamp - prev_state.header.stamp).toSec();
 }
 
-void ObjectTrajectoryEstimator::stateManager() {
+void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::ConstPtr &msg) {
+  // 判定用の値設定
+  geometry_msgs::PointStamped tmp_point = transformPoint(tfBuffer, *msg); // 引数がgeometry_msgs::PointStampedなので参照渡し
+  std::vector<double> tmp_vel = std::vector<double>(3);
+  tmp_vel[0] = (tmp_point.point.x - prev_state.pos.x)/dt;
+  tmp_vel[1] = (tmp_point.point.y - prev_state.pos.y)/dt;
+  tmp_vel[2] = (tmp_point.point.z - prev_state.pos.z)/dt;
+    
   // 動作開始の判定
   if (ready_flag) {
-    if (current_state.pos.z >= init_thr) {
+    if (tmp_point.point.z >= init_thr) {
       // ボールをセットしたと判定
       ballSet_flag = true;
-    } else if (ballSet_flag && current_state.pos.z < start_thr) {
+    } else if (ballSet_flag && tmp_point.point.z < start_thr) {
       // セットした後にある程度ボール位置が落ちてきたら動作が始まったと判定
       ballSet_flag = false;
       ready_flag = false;
     }
   } else {
-    // 速度ver1
-    if (current_state.vel.z > 0) {
-      predict_flag = true;
-    } else if (current_state.vel.z <= 0) {
-      predict_flag = false;
-      current_time = 0.0;
-      // rlsの共分散行列初期化
-      rls.reset();
-    }
-
-    // 速度ver2
-    if (current_state.vel.z > 0 && prev_state.vel.z > 0) {
-      predict_flag = true;
-    } else if (current_state.vel.z > 0 && prev_state.vel.z <= 0) {
-      predict_flag = false;
-      current_time += dt; // リセットしない
-    } else if (current_state.vel.z <= 0 && prev_state.vel.z > 0) {
-      predict_flag = false;
-      current_time += dt; // リセットしない
-    } else if (current_state.vel.z <= 0 && prev_state.vel.z <= 0) {
+    // todo: ここのチェックを整理する
+    
+    // 高さ+速度ver
+    if (tmp_point.point.z > bound_thr) {
+      if (tmp_vel[2] > 0 && prev_state.vel.z > 0) {
+    	predict_flag = true;
+      } else if (tmp_vel[2] > 0 && prev_state.vel.z <= 0) {
+    	predict_flag = false;
+    	current_time += dt; // リセットしない
+      } else if (tmp_vel[2] <= 0 && prev_state.vel.z > 0) {
+    	predict_flag = false;
+    	current_time += dt; // リセットしない
+      } else if (tmp_vel[2] <= 0 && prev_state.vel.z <= 0) {
+    	predict_flag = false;
+    	current_time = 0.0; // リセットしてok
+	// rlsの共分散行列初期化
+	// rls.reset();
+	// フィルターのwindowのbuffを消す
+	window.clear();
+      }
+    } else if (tmp_vel[2] <= bound_thr) {
       predict_flag = false;
       current_time = 0.0; // リセットしてok
       // rlsの共分散行列初期化
       // rls.reset();
-      rls.rls3d[2].reset();
+      // フィルターのwindowのbuffを消す
+      window.clear();
+    }
 
-      // 次の目標軌道
-      // setParamters()~~
-    } 
-
-    // // 高さ+速度ver
-    // if (current_state.pos.z > bound_thr) {
-    //   if (current_state.vel.z > 0 && prev_state.vel.z > 0) {
-    // 	predict_flag = true;
-    //   } else if (current_state.vel.z > 0 && prev_state.vel.z <= 0) {
-    // 	predict_flag = false;
-    // 	current_time += dt; // リセットしない
-    //   } else if (current_state.vel.z <= 0 && prev_state.vel.z > 0) {
-    // 	predict_flag = false;
-    // 	current_time += dt; // リセットしない
-    //   } else if (current_state.vel.z <= 0 && prev_state.vel.z <= 0) {
-    // 	predict_flag = false;
-    // 	current_time = 0.0; // リセットしてok
-    //   }
-    // } else if (current_state.vel.z <= bound_thr) {
+    // // 速度ver2
+    // if (tmp_vel[2] > 0 && prev_state.vel.z > 0) {
+    //   predict_flag = true;
+    // } else if (tmp_vel[2] > 0 && prev_state.vel.z <= 0) {
     //   predict_flag = false;
-    //   current_time = 0.0;
-
+    //   current_time += dt; // リセットしない
+    // } else if (tmp_vel[2] <= 0 && prev_state.vel.z > 0) {
+    //   predict_flag = false;
+    //   current_time += dt; // リセットしない
+    // } else if (tmp_vel[2] <= 0 && prev_state.vel.z <= 0) {
+    //   predict_flag = false;
+    //   current_time = 0.0; // リセットしてok
+      
     //   // rlsの共分散行列初期化
     //   // rls.reset();
-    //   rls.rls3d[2].reset();
+ 
+    //   // 次の目標軌道
+    //   // setParamters()~~
     // }
 
+    //     // 速度ver1
+    // if (tmp_vel[2] > 0) {
+    //   predict_flag = true;
+    // } else if (tmp_vel[2] <= 0) {
+    //   predict_flag = false;
+    //   current_time = 0.0;
+    //   // rlsの共分散行列初期化
+    //   rls.reset();
+    // }
+    
     pred_state.fb_flag.data = predict_flag;
   }
 }
@@ -168,7 +181,7 @@ void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamp
 }
 
 void ObjectTrajectoryEstimator::calcPredState() {
-  if (loop_init) current_time += dt;
+  if (loop_init) current_time += dt; // 予測開始時を0[s]にする
   loop_init = true;
 
   for (int i=0;i<timeVector.size();i++) {
@@ -205,16 +218,6 @@ void ObjectTrajectoryEstimator::calcPredState() {
   // todo: 速度
 }
 
-void ObjectTrajectoryEstimator::calcInitState() {
-  init_vel.push_back(current_state.vel.z);
-  if (init_vel.size() == 3) {
-    std::vector<double> new_theta = {current_state.pos.z, std::accumulate(init_vel.begin(), init_vel.end(), 0.0) / 3.0};
-    rls.rls3d[2].setParameters(new_theta);
-    theta_initialize = false;
-  }
-  // x,yもここで計算するようにする
-}
-
 geometry_msgs::PointStamped ObjectTrajectoryEstimator::applyFilter(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // windowへの追加
   Eigen::Vector3d pos(msg->point.x, msg->point.y, msg->point.z);
@@ -239,9 +242,9 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::applyFilter(const geometr
   return filteredPoint;
 }
 
-geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &filteredPoint) {
+geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg) {
   // 半球殻の重心->球の重心
-  Eigen::Vector3d pos(filteredPoint.point.x, filteredPoint.point.y, filteredPoint.point.z);
+  Eigen::Vector3d pos(msg.point.x, msg.point.y, msg.point.z);
   Eigen::Vector3d fixed_pos;
   geometry_msgs::PointStamped tmp_point;
   double D = pos.norm();
@@ -261,6 +264,18 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_
   return transformedPoint;
 }
 
+void ObjectTrajectoryEstimator::calcInitState() {
+  init_vel.push_back(current_state.vel.z);
+  if (init_vel.size() == 3) {
+    std::vector<double> new_theta = {current_state.pos.z, std::accumulate(init_vel.begin(), init_vel.end(), 0.0) / 3.0};
+    rls.rls3d[2].setParameters(new_theta);
+    theta_initialize = false;
+  }
+  // x,yもここで計算するようにする
+}
+  
+  
+// srv
 bool ObjectTrajectoryEstimator::setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request &req,
 						 object_trajectory_estimator::SetRLSParameters::Response &res) {
   std::vector<double> params(req.params.begin(), req.params.end());
