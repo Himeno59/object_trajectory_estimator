@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
+#include <std_msgs/Float32.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/Vector3Stamped.h>
 #include <geometry_msgs/TransformStamped.h>
@@ -10,6 +11,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <object_trajectory_estimator/BallStateStamped.h>
+#include <object_trajectory_estimator/FbCheck.h>
 
 #include <object_trajectory_estimator/SetRLSParameters.h>
 #include <object_trajectory_estimator/GetRLSParameters.h>
@@ -44,7 +46,7 @@ namespace object_trajectory_estimator {
     void calcPredState();
     
     void calcInitState();
-    geometry_msgs::PointStamped applyFilter(const geometry_msgs::PointStamped::ConstPtr &msg);
+    geometry_msgs::PointStamped applyFilter(const geometry_msgs::PointStamped &msg);
     geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg);
 
     bool setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request &req, object_trajectory_estimator::SetRLSParameters::Response &res);
@@ -57,6 +59,7 @@ namespace object_trajectory_estimator {
     ros::Subscriber point_sub;
     ros::Publisher current_state_pub;
     ros::Publisher pred_state_pub;
+    ros::Publisher check_pub;
 
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
@@ -64,6 +67,7 @@ namespace object_trajectory_estimator {
     object_trajectory_estimator::BallStateStamped current_state;
     object_trajectory_estimator::BallStateStamped pred_state;
     object_trajectory_estimator::BallStateStamped prev_state;
+    object_trajectory_estimator::FbCheck fb_check;
 
     int window_size;
     std::vector<Eigen::Vector3d> window;

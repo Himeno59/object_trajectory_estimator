@@ -8,9 +8,9 @@
   
   <group ns="$(arg namespace)">
     <node name="object_trajectory_estimator"
-	  pkg="nodelet" type="nodelet"
-	  args="load object_trajectory_estimator/ObjectTrajectoryEstimator $(arg manager)"
-	  output="screen">
+  	  pkg="nodelet" type="nodelet"
+  	  args="load object_trajectory_estimator/ObjectTrajectoryEstimator $(arg manager)"
+  	  output="screen">
       <remap from="~point_input" to="$(arg point_input)" />
       <remap from="~current_state_output" to="$(arg current_state_output)" />
       <remap from="~pred_state_output" to="$(arg pred_state_output)" />
@@ -22,10 +22,10 @@
         start_thr: -0.50
         pred_time: 0.10
         bound_thr: -0.80
-        wait_fb: 0.10
+        wait_fb: 0.0
         x_init_theta: [ 0.90, 0.0]
         y_init_theta: [-0.35, 0.0]
-        z_init_theta: [-0.84, 4.3]
+        z_init_theta: [-0.84, 4.0]
       </rosparam>
     </node>
   </group>
