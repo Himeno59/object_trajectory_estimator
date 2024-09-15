@@ -13,7 +13,18 @@ RLS::RLS() {}
 RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(1.0) 
 {
   theta.resize(k+1);
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e9;
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e2;
+
+  // // P = (A^t*A)^-1
+  // // n=1は逆行列なしでn=2はある(それ以降もあるはず)
+  // // n=2のときから計算を始めることにする
+  // // A << 1 t1
+  // //      1 t2
+  // // t1 = 0, t2 = 1/90 が期待される
+  // P = Eigen::MatrixXd::Zero(degree+1, degree+1);
+  // P << 1.0,    -90.0,
+  //      -90.0, 2.0*(90.0*90.0);
+  
   init_theta = new_theta;
   setParameters(init_theta);
 }
@@ -59,15 +70,18 @@ double RLS::predict(double target_time) {
   for (int i=0;i<degree+1;i++) {
     time_vector(i) = std::pow(target_time, i); 
   }
-  predictValue = theta.dot(time_vector);
+  predictValue = time_vector.dot(theta);
   return predictValue;
 }
 
 void RLS::reset() {
   // 共分散行列の初期化
-  // 係数も毎回初期化
+  // 係数も毎回初期化?
+  // P << 1.0,    -90.0,
+  //      -90.0, 2.0*(90.0*90.0);
   P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e9;
-  setParameters(init_theta);
+  
+  // setParameters(init_theta);
 }
 
 /* ---------- RLS3D ---------- */
