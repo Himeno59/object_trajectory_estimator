@@ -114,43 +114,25 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
   } else {
     // todo: ここのチェックを整理する
     
-    // // 高さ+速度ver
-    // if (tmp_transformedPoint.point.z > bound_thr) {
-    //   if (tmp_vel[2] > 0 && prev_state.vel.z > 0) {
-    // 	predict_flag = true;
-    //   } else if (tmp_vel[2] > 0 && prev_state.vel.z <= 0) {
-    // 	predict_flag = false;
-    // 	current_time += dt; // リセットしない
-    //   } else if (tmp_vel[2] <= 0 && prev_state.vel.z > 0) {
-    // 	predict_flag = false;
-    // 	current_time += dt; // リセットしない
-    //   } else if (tmp_vel[2] <= 0 && prev_state.vel.z <= 0) {
-    // 	predict_flag = false;
-    // 	current_time = 0.0; // リセットしてok
-    // 	// rlsの共分散行列初期化
-    // 	// rls.reset();
-    // 	// フィルターのwindowのbuffを消す
-    // 	window.clear();
-    //   }
-    // } else if (tmp_vel[2] <= bound_thr) {
-    //   predict_flag = false;
-    //   current_time = 0.0; // リセットしてok
-    //   // rlsの共分散行列初期化
-    //   rls.reset();
-    //   // フィルターのwindowのbuffを消す
-    //   window.clear();
-    // }
-    
-    // 速度ver2
-    if (tmp_vel[2] > 0 && prev_state.vel.z > 0) {
-      predict_flag = true;
-    } else if (tmp_vel[2] > 0 && prev_state.vel.z <= 0) {
-      predict_flag = false;
-      current_time += dt; // リセットしない
-    } else if (tmp_vel[2] <= 0 && prev_state.vel.z > 0) {
-      predict_flag = false;
-      current_time += dt; // リセットしない
-    } else if (tmp_vel[2] <= 0 && prev_state.vel.z <= 0) {
+    // 高さ+速度ver
+    if (tmp_transformedPoint.point.z > bound_thr) {
+      if (tmp_vel[2] > 0 && prev_state.vel.z > 0) {
+    	predict_flag = true;
+      } else if (tmp_vel[2] > 0 && prev_state.vel.z <= 0) {
+    	predict_flag = false;
+    	current_time += dt; // リセットしない
+      } else if (tmp_vel[2] <= 0 && prev_state.vel.z > 0) {
+    	predict_flag = false;
+    	current_time += dt; // リセットしない
+      } else if (tmp_vel[2] <= 0 && prev_state.vel.z <= 0) {
+    	predict_flag = false;
+    	current_time = 0.0; // リセットしてok
+    	// rlsの共分散行列初期化
+    	// rls.reset();
+    	// フィルターのwindowのbuffを消す
+    	window.clear();
+      }
+    } else if (tmp_vel[2] <= bound_thr) {
       predict_flag = false;
       current_time = 0.0; // リセットしてok
       // rlsの共分散行列初期化
@@ -158,6 +140,24 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
       // フィルターのwindowのbuffを消す
       window.clear();
     }
+    
+    // // 速度ver2
+    // if (tmp_vel[2] > 0 && prev_state.vel.z > 0) {
+    //   predict_flag = true;
+    // } else if (tmp_vel[2] > 0 && prev_state.vel.z <= 0) {
+    //   predict_flag = false;
+    //   current_time += dt; // リセットしない
+    // } else if (tmp_vel[2] <= 0 && prev_state.vel.z > 0) {
+    //   predict_flag = false;
+    //   current_time += dt; // リセットしない
+    // } else if (tmp_vel[2] <= 0 && prev_state.vel.z <= 0) {
+    //   predict_flag = false;
+    //   current_time = 0.0; // リセットしてok
+    //   // rlsの共分散行列初期化
+    //   rls.reset();
+    //   // フィルターのwindowのbuffを消す
+    //   window.clear();
+    // }
 
     //     // 速度ver1
     // if (tmp_vel[2] > 0) {
