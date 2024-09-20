@@ -79,7 +79,7 @@ void RLS::reset() {
   // 係数も毎回初期化?
   // P << 1.0,    -90.0,
   //      -90.0, 2.0*(90.0*90.0);
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e9;
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e2;
   
   // setParameters(init_theta);
 }
