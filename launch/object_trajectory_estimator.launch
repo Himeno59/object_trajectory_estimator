@@ -15,8 +15,8 @@
       <remap from="~current_state_output" to="$(arg current_state_output)" />
       <remap from="~pred_state_output" to="$(arg pred_state_output)" />
       <rosparam>
-        frame_id: rs_l515_depth_optical_frame
-        camera_frame: rs_l515_depth_optical_frame
+        frame_id: rs_d455_color_optical_frame
+        camera_frame: rs_d455_color_optical_frame
         base_frame: BODY
         init_thr: 0.0
         start_thr: -0.50
