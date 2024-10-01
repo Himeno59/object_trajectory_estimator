@@ -60,6 +60,7 @@ namespace object_trajectory_estimator {
     ros::Publisher current_state_pub;
     ros::Publisher pred_state_pub;
     ros::Publisher check_pub;
+    ros::Publisher current_state_pos_pub;
 
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
@@ -68,6 +69,7 @@ namespace object_trajectory_estimator {
     object_trajectory_estimator::BallStateStamped pred_state;
     object_trajectory_estimator::BallStateStamped prev_state;
     object_trajectory_estimator::FbCheck fb_check;
+    geometry_msgs::PointStamped current_state_pos; // visualize用
 
     int window_size;
     std::vector<Eigen::Vector3d> window;
@@ -97,6 +99,7 @@ namespace object_trajectory_estimator {
     double bound_thr;
     double pred_time;
     double wait_fb;
+    double centroid_offset;
     std::vector<double> x_init_theta;
     std::vector<double> y_init_theta;
     std::vector<double> z_init_theta;

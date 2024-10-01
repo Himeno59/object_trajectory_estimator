@@ -20,6 +20,8 @@ void ObjectTrajectoryEstimator::onInit() {
   current_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("current_state_output", 1);
   pred_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("pred_state_output", 1);
   check_pub = pnh.advertise<object_trajectory_estimator::FbCheck>("fb_check", 1);
+  current_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("current_state_pos_output", 1);
+  
   // rosparam
   pnh.getParam("frame_id", frame_id);
   pnh.getParam("camera_frame", camera_frame);
@@ -31,10 +33,12 @@ void ObjectTrajectoryEstimator::onInit() {
   pnh.getParam("wait_fb", wait_fb);
   pnh.getParam("x_init_theta", x_init_theta);
   pnh.getParam("y_init_theta", y_init_theta);
-  pnh.getParam("z_init_theta", z_init_theta);  
+  pnh.getParam("z_init_theta", z_init_theta);
+  pnh.getParam("centroid_offset", centroid_offset);
   // header
   current_state.header.frame_id = base_frame;
   pred_state.header.frame_id = base_frame;
+  current_state_pos.header.frame_id = base_frame;
 
   // rls
   rls = RLS3D(1, 1, 1, x_init_theta, y_init_theta, z_init_theta);
@@ -72,6 +76,9 @@ void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::Cons
   
   // 値の保持
   prev_state = current_state;
+  
+  // fb_flagをfalseに戻す
+  pred_state.fb_flag.data = false;
 }
 
 void ObjectTrajectoryEstimator::publish() {
@@ -82,13 +89,15 @@ void ObjectTrajectoryEstimator::publish() {
   } else {
     fb_check.value = 0.0;
   }
-  check_pub.publish(fb_check); 
+  check_pub.publish(fb_check);
+  current_state_pos_pub.publish(current_state_pos);
 }
 
 void ObjectTrajectoryEstimator::updateStamp(const geometry_msgs::PointStamped::ConstPtr &msg) {
   current_state.header.stamp = msg->header.stamp;
   pred_state.header.stamp = msg->header.stamp;
   fb_check.header.stamp = msg->header.stamp;
+  current_state_pos.header.stamp = msg->header.stamp;
   dt = (current_state.header.stamp - prev_state.header.stamp).toSec();
 }
 
@@ -185,6 +194,10 @@ void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamp
   current_state.vel.x = (current_state.pos.x - prev_state.pos.x) / dt;
   current_state.vel.y = (current_state.pos.y - prev_state.pos.y) / dt;
   current_state.vel.z = (current_state.pos.z - prev_state.pos.z) / dt;
+
+  current_state_pos.point.x = filteredPoint.point.x;
+  current_state_pos.point.y = filteredPoint.point.y;
+  current_state_pos.point.z = filteredPoint.point.z;
 }
 
 void ObjectTrajectoryEstimator::calcPredState() {
@@ -252,7 +265,7 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_
   geometry_msgs::PointStamped tmp_point;
   double D = pos.norm();
   double k = 0.5 * 0.1225; // r=0.1225[m]
-  fixed_pos = pos + k * pos.normalized();
+  fixed_pos = pos + (k + centroid_offset) * pos.normalized();
   tmp_point.point.x = fixed_pos.x();
   tmp_point.point.y = fixed_pos.y();
   tmp_point.point.z = fixed_pos.z();
