@@ -1,31 +1,31 @@
 <!-- -*- mode: xml -*- --><!-- -*- mode: xml -*- -->
 <launch>
-  <arg name="manager"   default="nodelet_manager"/>
-  <arg name="namespace"  default=""/>
-  <arg name="queue_size"  default="5" />
+  <arg name="manager"      default="nodelet_manager"/>
+  <arg name="namespace"    default=""/>
+  <arg name="queue_size"   default="5" />
   
   <!-- nodelet manager -->
   <include file="$(find object_trajectory_estimator)/launch/nodelet_manager.launch">
-    <arg name="manager" default="$(arg manager)" />
-    <arg name="namespace" default="$(arg namespace)" />
+    <arg name="manager"           default="$(arg manager)" />
+    <arg name="namespace"         default="$(arg namespace)" />
   </include>
 
   <!-- object_trajectory_estimator -->
   <include file="$(find object_trajectory_estimator)/launch/object_trajectory_estimator.launch">
-    <arg name="manager" default="$(arg manager)" />
-    <arg name="namespace" default="$(arg namespace)" />
+    <arg name="manager"     default="$(arg manager)" />
+    <arg name="namespace"   default="$(arg namespace)" />
   </include>
 
   <!-- color filter -->
   <include file="$(find opencv_apps)/launch/color_filter.launch">
-    <arg name="manager" default="$(arg manager)" />
-    <arg name="namespace" default="$(arg namespace)" />
+    <arg name="manager"     default="$(arg manager)" />
+    <arg name="namespace"   default="$(arg namespace)" />
   </include>
 
   <!-- realsense d455 -->
   <include file="$(find realsense2_camera)/launch/rs_d455.launch">
-    <arg name="manager" default="$(arg manager)" />
-    <arg name="namespace" default="$(arg namespace)" />
+    <arg name="manager"     default="$(arg manager)" />
+    <arg name="namespace"   default="$(arg namespace)" />
   </include>
 
 </launch>
