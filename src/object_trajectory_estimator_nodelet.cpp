@@ -36,9 +36,9 @@ void ObjectTrajectoryEstimator::onInit() {
   pnh.getParam("z_init_theta", z_init_theta);
   pnh.getParam("centroid_offset", centroid_offset);
   // header
-  current_state.header.frame_id = base_frame;
-  pred_state.header.frame_id = base_frame;
-  current_state_pos.header.frame_id = base_frame;
+  current_state.header.frame_id = frame_id;
+  pred_state.header.frame_id = frame_id;
+  current_state_pos.header.frame_id = frame_id;
 
   // rls
   rls = RLS3D(1, 1, 1, x_init_theta, y_init_theta, z_init_theta);
@@ -137,7 +137,7 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
     	predict_flag = false;
     	current_time = 0.0; // リセットしてok
     	// rlsの共分散行列初期化
-    	// rls.reset();
+    	rls.reset();
     	// フィルターのwindowのbuffを消す
     	window.clear();
       }
@@ -183,9 +183,15 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
 
 void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // 座標変換
-  geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, *msg);
+  // geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, *msg);
+  geometry_msgs::PointStamped filteredPoint = transformPoint(tfBuffer, *msg);
   // 平滑化
-  geometry_msgs::PointStamped filteredPoint = applyFilter(transformedPoint);
+  // geometry_msgs::PointStamped filteredPoint = applyFilter(transformedPoint);
+
+  // if (fabs(filteredPoint.point.x) > 100) filteredPoint.point.x = 0;
+  // if (fabs(filteredPoint.point.y) > 100) filteredPoint.point.y = 0;
+  // if (fabs(filteredPoint.point.z) > 100) filteredPoint.point.z = 0;  
+  
   // 位置
   current_state.pos.x = filteredPoint.point.x;
   current_state.pos.y = filteredPoint.point.y;
@@ -266,16 +272,21 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_
   double D = pos.norm();
   double k = 0.5 * 0.1225; // r=0.1225[m]
   fixed_pos = pos + (k + centroid_offset) * pos.normalized();
+  // fixed_pos = pos + k * pos.normalized();
   tmp_point.point.x = fixed_pos.x();
   tmp_point.point.y = fixed_pos.y();
   tmp_point.point.z = fixed_pos.z();
+  // tmp_point.point.x = pos.x();
+  // tmp_point.point.y = pos.y();
+  // tmp_point.point.z = pos.z();
 
   // 座標変換
   geometry_msgs::TransformStamped trans;
   trans = tfBuffer.lookupTransform(base_frame, camera_frame, ros::Time(0)); // (出力, 入力)の順番
   geometry_msgs::PointStamped transformedPoint;
   tf2::doTransform(tmp_point, transformedPoint, trans);
-  transformedPoint.header.stamp = ros::Time::now();
+  // transformedPoint.point.z += k + centroid_offset;
+  // transformedPoint.header.stamp = ros::Time::now();
   
   return transformedPoint;
 }
