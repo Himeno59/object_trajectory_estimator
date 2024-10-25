@@ -35,14 +35,14 @@ void RLS::update(const Eigen::VectorXd& x, double y) {
   
   // ゲインのv計算
   Eigen::VectorXd K = P * x / (lambda + x.transpose() * P * x);
-  Eigen::VectorXd prev_theta = theta;
+  Eigen::VectorXd tmp_theta = theta;
   
   // パラメータの更新
   theta += K * e;
   
   // thetaにnanなどが含まれていた場合の処理 -> 直前の値を入れる
   if (theta.hasNaN() || (theta.array() == std::numeric_limits<double>::infinity()).any() || (theta.array() == -std::numeric_limits<double>::infinity()).any()) {
-    theta = prev_theta;
+    theta = tmp_theta;
   } else {
     // 含まれていなければ共分散行列を更新する
     P = (Eigen::MatrixXd::Identity(theta.size(), theta.size()) - K * x.transpose()) * P / lambda;
@@ -77,6 +77,7 @@ double RLS::predict(double target_time) {
 void RLS::reset() {
   // 共分散行列の初期化
   // 係数も毎回初期化?
+  // std::cerr << "reset" << std::endl;
   // P << 1.0,    -90.0,
   //      -90.0, 2.0*(90.0*90.0);
   P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e2;
