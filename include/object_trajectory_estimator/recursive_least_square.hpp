@@ -18,6 +18,7 @@ public:
 public:
   Eigen::VectorXd getParameters() const;
   bool setParameters(std::vector<double>& new_theta);
+  bool setMatrix(Eigen::MatrixXd& matrix);
   
 public:
   int degree;                      // k次の多項式モデルでフィッティング
@@ -27,6 +28,7 @@ public:
   double predictValue;             // 予測値
   
 private:
+  Eigen::MatrixXd setP;            // Pをセットする用
   Eigen::MatrixXd P;               // 共分散行列
 };
 
@@ -43,6 +45,7 @@ public:
   void calcVertex();
   std::vector<double> getVertex() const;
   void reset();
+  bool setMatrix(Eigen::MatrixXd& matrix);
 
 public:
   std::vector<RLS> rls3d;

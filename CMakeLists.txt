@@ -67,6 +67,7 @@ add_service_files(
   FILES
   SetRLSParameters.srv
   GetRLSParameters.srv
+  SetRLSMatrix.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -136,6 +137,12 @@ add_library(${PROJECT_NAME}
   src/least_square.cpp
   )
 target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+  )
+
+add_executable(set_rls_matrix
+  src/set_rls_matrix.cpp)
+target_link_libraries(set_rls_matrix
   ${catkin_LIBRARIES}
   )
 

@@ -14,6 +14,7 @@
 #include <object_trajectory_estimator/FbCheck.h>
 
 #include <object_trajectory_estimator/SetRLSParameters.h>
+#include <object_trajectory_estimator/SetRLSMatrix.h>
 #include <object_trajectory_estimator/GetRLSParameters.h>
 
 #include <object_trajectory_estimator/recursive_least_square.hpp>
@@ -50,12 +51,14 @@ namespace object_trajectory_estimator {
     geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg);
 
     bool setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request &req, object_trajectory_estimator::SetRLSParameters::Response &res);
+    bool setRLSMatrix(object_trajectory_estimator::SetRLSMatrix::Request &req, object_trajectory_estimator::SetRLSMatrix::Response &res);
     bool getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request &req, object_trajectory_estimator::GetRLSParameters::Response &res);
 
     ros::NodeHandle nh;
     ros::NodeHandle pnh;
     ros::ServiceServer setService;
     ros::ServiceServer getService;
+    ros::ServiceServer matrixService;
     ros::Subscriber point_sub;
     ros::Publisher current_state_pub;
     ros::Publisher pred_state_pub;

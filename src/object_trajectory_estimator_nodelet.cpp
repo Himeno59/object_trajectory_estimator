@@ -13,6 +13,7 @@ void ObjectTrajectoryEstimator::onInit() {
   pnh = getPrivateNodeHandle();  
   // srv
   setService = nh.advertiseService("/ObjectTrajectoryEstimator/set_rls_parameters", &ObjectTrajectoryEstimator::setRLSParameters, this);
+  matrixService = nh.advertiseService("/ObjectTrajectoryEstimator/set_rls_matrix", &ObjectTrajectoryEstimator::setRLSMatrix, this);
   getService = nh.advertiseService("/ObjectTrajectoryEstimator/get_rls_parameters", &ObjectTrajectoryEstimator::getRLSParameters, this);
   // subscriber
   point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::callback, this);
@@ -300,23 +301,38 @@ void ObjectTrajectoryEstimator::calcInitState() {
   }
   // x,yもここで計算するようにする
 }
-  
-  
+    
 // srv
 bool ObjectTrajectoryEstimator::setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request &req,
-						 object_trajectory_estimator::SetRLSParameters::Response &res) {
+                                                 object_trajectory_estimator::SetRLSParameters::Response &res) {
   std::vector<double> params(req.params.begin(), req.params.end());
   bool success = rls.rls3d[2].setParameters(params);
   res.success = success;
   return true;
 }
 
+bool ObjectTrajectoryEstimator::setRLSMatrix(object_trajectory_estimator::SetRLSMatrix::Request &req,
+                                             object_trajectory_estimator::SetRLSMatrix::Response &res) {
+  Eigen::MatrixXd matrix(req.rows, req.cols);
+
+  int index = 0;
+  for (int i=0;i<req.rows;i++) {
+    for (int j=0;j<req.cols;j++) {
+      matrix(i,j) = req.data[index++];
+    }
+  }
+  bool success = rls.setMatrix(matrix);
+  res.success = success;
+  return true;
+}
+  
 bool ObjectTrajectoryEstimator::getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request &req,
-						 object_trajectory_estimator::GetRLSParameters::Response &res) {
+                                                 object_trajectory_estimator::GetRLSParameters::Response &res) {
   res.params[0] = rls.rls3d[2].getParameters()[0];
   res.params[1] = rls.rls3d[2].getParameters()[1];
   return true;
 }
+
 
 } // namespace object_trajectory_estimator
 

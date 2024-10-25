@@ -13,17 +13,9 @@ RLS::RLS() {}
 RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(1.0) 
 {
   theta.resize(k+1);
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e2;
-
-  // // P = (A^t*A)^-1
-  // // n=1は逆行列なしでn=2はある(それ以降もあるはず)
-  // // n=2のときから計算を始めることにする
-  // // A << 1 t1
-  // //      1 t2
-  // // t1 = 0, t2 = 1/90 が期待される
-  // P = Eigen::MatrixXd::Zero(degree+1, degree+1);
-  // P << 1.0,    -90.0,
-  //      -90.0, 2.0*(90.0*90.0);
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1); 
+  setP = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e2;
+  setMatrix(setP);
   
   init_theta = new_theta;
   setParameters(init_theta);
@@ -65,6 +57,17 @@ bool RLS::setParameters(std::vector<double>& new_theta) {
   }
 }
 
+bool RLS::setMatrix(Eigen::MatrixXd& matrix) {
+  if (matrix.rows() == P.rows() && matrix.cols() == P.cols()) {
+    setP = matrix;
+    P = matrix;
+    return true;
+  } else {
+    std::cout << "not match degree" << std::endl;
+    return false;
+  }
+}
+  
 double RLS::predict(double target_time) {
   Eigen::VectorXd time_vector(degree+1);
   for (int i=0;i<degree+1;i++) {
@@ -76,12 +79,9 @@ double RLS::predict(double target_time) {
 
 void RLS::reset() {
   // 共分散行列の初期化
+  setMatrix(setP);
+
   // 係数も毎回初期化?
-  // std::cerr << "reset" << std::endl;
-  // P << 1.0,    -90.0,
-  //      -90.0, 2.0*(90.0*90.0);
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e2;
-  
   // setParameters(init_theta);
 }
 
@@ -117,5 +117,17 @@ std::vector<double> RLS3D::getVertex() const {
 void RLS3D::reset() {
   for (int i=0;i<rls3d.size();i++) {
     rls3d[i].reset();
+  }
+}
+
+bool RLS3D::setMatrix(Eigen::MatrixXd& matrix) {
+  std::vector<bool> success_check = std::vector<bool>(3);
+  for (int i=0;i<rls3d.size();i++) {
+    success_check[i] = rls3d[i].setMatrix(matrix);
+  }
+  if (success_check[0] == true && success_check[1] == true && success_check[2] == true) {
+    return true;
+  } else {
+    return false;
   }
 }
