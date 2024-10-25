@@ -27,7 +27,7 @@ public:
   Eigen::VectorXd theta;           // パラメータベクトル(求める値) todo: eigenかstd::vectorどっちかに揃える
   double predictValue;             // 予測値
   
-private:
+public:
   Eigen::MatrixXd setP;            // Pをセットする用
   Eigen::MatrixXd P;               // 共分散行列
 };

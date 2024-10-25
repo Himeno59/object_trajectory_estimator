@@ -323,6 +323,11 @@ bool ObjectTrajectoryEstimator::setRLSMatrix(object_trajectory_estimator::SetRLS
   }
   bool success = rls.setMatrix(matrix);
   res.success = success;
+
+  for(int i=0;i<3;i++){
+    std::cerr << "P: " << rls.rls3d[i].P << std::endl;
+  }
+  
   return true;
 }
   
