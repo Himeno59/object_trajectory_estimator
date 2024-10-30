@@ -149,36 +149,7 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
       rls.reset();
       // フィルターのwindowのbuffを消す
       window.clear();
-    }
-    
-    // // 速度ver2
-    // if (tmp_vel[2] > 0 && prev_state.vel.z > 0) {
-    //   predict_flag = true;
-    // } else if (tmp_vel[2] > 0 && prev_state.vel.z <= 0) {
-    //   predict_flag = false;
-    //   current_time += dt; // リセットしない
-    // } else if (tmp_vel[2] <= 0 && prev_state.vel.z > 0) {
-    //   predict_flag = false;
-    //   current_time += dt; // リセットしない
-    // } else if (tmp_vel[2] <= 0 && prev_state.vel.z <= 0) {
-    //   predict_flag = false;
-    //   current_time = 0.0; // リセットしてok
-    //   // rlsの共分散行列初期化
-    //   rls.reset();
-    //   // フィルターのwindowのbuffを消す
-    //   window.clear();
-    // }
-
-    //     // 速度ver1
-    // if (tmp_vel[2] > 0) {
-    //   predict_flag = true;
-    // } else if (tmp_vel[2] <= 0) {
-    //   predict_flag = false;
-    //   current_time = 0.0;
-    //   // rlsの共分散行列初期化
-    //   rls.reset();
-    // }
-    
+    }    
   }
 }
 
@@ -189,9 +160,9 @@ void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamp
   // 平滑化
   // geometry_msgs::PointStamped filteredPoint = applyFilter(transformedPoint);
 
-  // if (fabs(filteredPoint.point.x) > 100) filteredPoint.point.x = 0;
-  // if (fabs(filteredPoint.point.y) > 100) filteredPoint.point.y = 0;
-  // if (fabs(filteredPoint.point.z) > 100) filteredPoint.point.z = 0;  
+  if (fabs(filteredPoint.point.x) > 100) filteredPoint.point.x = 0;
+  if (fabs(filteredPoint.point.y) > 100) filteredPoint.point.y = 0;
+  if (fabs(filteredPoint.point.z) > 100) filteredPoint.point.z = 0;  
   
   // 位置
   current_state.pos.x = filteredPoint.point.x;
@@ -237,6 +208,11 @@ void ObjectTrajectoryEstimator::calcPredState() {
     
     // todo: 速度
   }
+
+  if (fabs(pred_state.pos.x) > 100) pred_state.pos.x = 0;
+  if (fabs(pred_state.pos.y) > 100) pred_state.pos.y = 0;
+  if (fabs(pred_state.pos.z) > 100) pred_state.pos.z = 0;
+  if (fabs(pred_state.target_tm) > 100) pred_state.target_tm = 0;  
   
   loop_init = true;
 }
