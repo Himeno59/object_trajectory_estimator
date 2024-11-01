@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   sensor_msgs
   cv_bridge
+  pcl_ros
+  pcl_conversions
 )
 
 ## Generate messages in the 'msg' folder
@@ -70,6 +72,7 @@ add_library(${PROJECT_NAME}
   src/recursive_least_square.cpp
   src/least_square.cpp
   src/depth_min.cpp
+  src/sphere_fitting.cpp
   )
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}

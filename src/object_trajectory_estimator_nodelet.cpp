@@ -246,17 +246,17 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_
   Eigen::Vector3d pos(msg.point.x, msg.point.y, msg.point.z);
   Eigen::Vector3d fixed_pos;
   geometry_msgs::PointStamped tmp_point;
-  double D = pos.norm();
-  double k = 0.1225; // r=0.1225[m]
-  // double k = 0.50*0.1225; // r=0.1225[m]
-  fixed_pos = pos + (k + centroid_offset) * pos.normalized();
-  // fixed_pos = pos + k * pos.normalized();
-  tmp_point.point.x = fixed_pos.x();
-  tmp_point.point.y = fixed_pos.y();
-  tmp_point.point.z = fixed_pos.z();
-  // tmp_point.point.x = pos.x();
-  // tmp_point.point.y = pos.y();
-  // tmp_point.point.z = pos.z();
+  // double D = pos.norm();
+  // double k = 0.1225; // r=0.1225[m]
+  // // double k = 0.50*0.1225; // r=0.1225[m]
+  // fixed_pos = pos + (k + centroid_offset) * pos.normalized();
+  // // fixed_pos = pos + k * pos.normalized();
+  // tmp_point.point.x = fixed_pos.x();
+  // tmp_point.point.y = fixed_pos.y();
+  // tmp_point.point.z = fixed_pos.z();
+  tmp_point.point.x = pos.x();
+  tmp_point.point.y = pos.y();
+  tmp_point.point.z = pos.z();
 
   // 座標変換
   geometry_msgs::TransformStamped trans;

@@ -2,7 +2,8 @@
 <launch>
   <arg name="manager"                      default="manager"/>
   <arg name="namespace"                    default=""/>
-  <arg name="point_input"                  default="centroid_publisher/output/point" />
+  <!-- <arg name="point_input"                  default="centroid_publisher/output/point" /> -->
+  <arg name="point_input"                  default="center/output" />
   <arg name="current_state_output"         default="object_trajectory_estimator/current_ball_state" />
   <arg name="pred_state_output"            default="object_trajectory_estimator/pred_ball_state" />
   <arg name="current_state_pos_output"     default="object_trajectory_estimator/current_ball_state_pos" />
