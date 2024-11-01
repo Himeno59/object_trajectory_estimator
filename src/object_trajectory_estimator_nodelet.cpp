@@ -247,7 +247,8 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_
   Eigen::Vector3d fixed_pos;
   geometry_msgs::PointStamped tmp_point;
   double D = pos.norm();
-  double k = 0.5 * 0.1225; // r=0.1225[m]
+  double k = 0.1225; // r=0.1225[m]
+  // double k = 0.50*0.1225; // r=0.1225[m]
   fixed_pos = pos + (k + centroid_offset) * pos.normalized();
   // fixed_pos = pos + k * pos.normalized();
   tmp_point.point.x = fixed_pos.x();
