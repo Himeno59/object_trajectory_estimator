@@ -1,3 +1,6 @@
+#ifndef OBJECT_TRAJECTORY_ESTIMATOR_HPP
+#define OBJECT_TRAJECTORY_ESTIMATOR_HPP
+
 // ros msg
 #include "ros/ros.h"
 #include "geometry_msgs/PointStamped.h"
@@ -104,3 +107,4 @@ public:
   bool getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request  &req,
 			object_trajectory_estimator::GetRLSParameters::Response &res);
 };
+

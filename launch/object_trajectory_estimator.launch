@@ -1,42 +1,33 @@
 <!-- -*- mode: xml -*- --><!-- -*- mode: xml -*- -->
 <launch>
-  <arg name="default_namespace" default="ObjectTrajectoryEstimator" />
-
-  <arg name="point_input" default="/centroid_publisher/output/point" />
-  <arg name="current_state_output" default="current_ball_state" />
-  <arg name="pred_state_output" default="pred_ball_state" />
-  <arg name="current_state_pos_output" default="current_ball_state_pos" />
-  <arg name="pred_state_pos_output" default="pred_ball_state_pos" />
-  <arg name="dummy_state_pos_output" default="dummy_state_pos" />
-  <arg name="real_traj_output" default="real_ball_trajectory" />
-  <arg name="pred_traj_output" default="pred_ball_trajectory" />
-    
-  <group ns="$(arg default_namespace)">
-    <node pkg="object_trajectory_estimator" type="object_trajectory_estimator"
-	  name="ball_estimate" output="screen">
+  <arg name="manager"                  default="manager"/>
+  <arg name="namespace"                default=""/>
+  <arg name="point_input"              default="centroid_publisher/output/point" />
+  <arg name="current_state_output"     default="object_trajectory_estimator/current_ball_state" />
+  <arg name="pred_state_output"        default="object_trajectory_estimator/pred_ball_state" />
+  
+  <group ns="$(arg namespace)">
+    <node name="object_trajectory_estimator"
+  	  pkg="nodelet" type="nodelet"
+  	  args="load object_trajectory_estimator/ObjectTrajectoryEstimator $(arg manager)"
+  	  output="screen">
       <remap from="~point_input" to="$(arg point_input)" />
       <remap from="~current_state_output" to="$(arg current_state_output)" />
       <remap from="~pred_state_output" to="$(arg pred_state_output)" />
-      <remap from="~current_state_pos_output" to="$(arg current_state_pos_output)" />
-      <remap from="~pred_state_pos_output" to="$(arg pred_state_pos_output)" />
-      <remap from="~dummy_state_pos_output" to="$(arg dummy_state_pos_output)" />
-      <remap from="~real_traj_output" to="$(arg real_traj_output)" />
-      <remap from="~pred_traj_output" to="$(arg pred_traj_output)" />
       <rosparam>
-        frame_id: rs_l515_depth_optical_frame
-        camera_frame: rs_l515_depth_optical_frame
+        frame_id: rs_d455_color_optical_frame
+        camera_frame: rs_d455_color_optical_frame
         base_frame: BODY
         init_thr: 0.0
         start_thr: -0.50
         pred_time: 0.10
         bound_thr: -0.80
-        wait_fb: 0.10
+        wait_fb: 0.0
         x_init_theta: [ 0.90, 0.0]
         y_init_theta: [-0.35, 0.0]
-        z_init_theta: [-0.84, 4.1]
+        z_init_theta: [-0.84, 4.0]
       </rosparam>
     </node>
-    
   </group>
-  
+
 </launch>

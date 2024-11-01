@@ -8,11 +8,15 @@
 #endif
 
 /* ---------- RLS ---------- */
+RLS::RLS() {}
+
 RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(1.0) 
 {
   theta.resize(k+1);
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1);
-  P(0,0) = 0.10;
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1); 
+  setP = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e2;
+  setMatrix(setP);
+  
   init_theta = new_theta;
   setParameters(init_theta);
 }
@@ -23,14 +27,14 @@ void RLS::update(const Eigen::VectorXd& x, double y) {
   
   // ゲインのv計算
   Eigen::VectorXd K = P * x / (lambda + x.transpose() * P * x);
-  Eigen::VectorXd prev_theta = theta;
+  Eigen::VectorXd tmp_theta = theta;
   
   // パラメータの更新
   theta += K * e;
   
   // thetaにnanなどが含まれていた場合の処理 -> 直前の値を入れる
   if (theta.hasNaN() || (theta.array() == std::numeric_limits<double>::infinity()).any() || (theta.array() == -std::numeric_limits<double>::infinity()).any()) {
-    theta = prev_theta;
+    theta = tmp_theta;
   } else {
     // 含まれていなければ共分散行列を更新する
     P = (Eigen::MatrixXd::Identity(theta.size(), theta.size()) - K * x.transpose()) * P / lambda;
@@ -53,23 +57,37 @@ bool RLS::setParameters(std::vector<double>& new_theta) {
   }
 }
 
+bool RLS::setMatrix(Eigen::MatrixXd& matrix) {
+  if (matrix.rows() == P.rows() && matrix.cols() == P.cols()) {
+    setP = matrix;
+    P = matrix;
+    return true;
+  } else {
+    std::cout << "not match degree" << std::endl;
+    return false;
+  }
+}
+  
 double RLS::predict(double target_time) {
   Eigen::VectorXd time_vector(degree+1);
   for (int i=0;i<degree+1;i++) {
     time_vector(i) = std::pow(target_time, i); 
   }
-  predictValue = theta.dot(time_vector);
+  predictValue = time_vector.dot(theta);
   return predictValue;
 }
 
 void RLS::reset() {
-  // 共分散行列の初期化 -> 速度の項のみ初期化
-  // 係数も毎回初期化
-  P(1,1) = 1.0;
-  setParameters(init_theta);
+  // 共分散行列の初期化
+  setMatrix(setP);
+
+  // 係数も毎回初期化?
+  // setParameters(init_theta);
 }
 
 /* ---------- RLS3D ---------- */
+RLS3D::RLS3D() {}
+
 RLS3D::RLS3D(int k_x, int k_y, int k_z,
 	     std::vector<double> x_new_theta, std::vector<double> y_new_theta, std::vector<double> z_new_theta)
   : rls3d{RLS(k_x, x_new_theta), RLS(k_y, y_new_theta), RLS(k_z, z_new_theta)}
@@ -99,5 +117,17 @@ std::vector<double> RLS3D::getVertex() const {
 void RLS3D::reset() {
   for (int i=0;i<rls3d.size();i++) {
     rls3d[i].reset();
+  }
+}
+
+bool RLS3D::setMatrix(Eigen::MatrixXd& matrix) {
+  std::vector<bool> success_check = std::vector<bool>(3);
+  for (int i=0;i<rls3d.size();i++) {
+    success_check[i] = rls3d[i].setMatrix(matrix);
+  }
+  if (success_check[0] == true && success_check[1] == true && success_check[2] == true) {
+    return true;
+  } else {
+    return false;
   }
 }

@@ -1,0 +1,10 @@
+<!-- -*- mode: xml -*- --><!-- -*- mode: xml -*- -->
+<launch>
+  <arg name="manager"   default="nodelet_manager"/>
+  <arg name="namespace"  default=""/>
+
+  <group ns="$(arg namespace)">
+    <node name="$(arg manager)" pkg="nodelet" type="nodelet" args="manager" output="screen"/>
+  </group>
+
+</launch>

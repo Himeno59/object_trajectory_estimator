@@ -8,7 +8,9 @@
 class RLS
 {
 public:
+  RLS();
   RLS(int k, std::vector<double> new_theta);
+  
   void update(const Eigen::VectorXd& x, double y); // x = [1, x_n, ~ , x_n^k].T, y = y_n 
   double predict(double target_time);
   void reset();
@@ -16,6 +18,7 @@ public:
 public:
   Eigen::VectorXd getParameters() const;
   bool setParameters(std::vector<double>& new_theta);
+  bool setMatrix(Eigen::MatrixXd& matrix);
   
 public:
   int degree;                      // k次の多項式モデルでフィッティング
@@ -24,7 +27,8 @@ public:
   Eigen::VectorXd theta;           // パラメータベクトル(求める値) todo: eigenかstd::vectorどっちかに揃える
   double predictValue;             // 予測値
   
-private:
+public:
+  Eigen::MatrixXd setP;            // Pをセットする用
   Eigen::MatrixXd P;               // 共分散行列
 };
 
@@ -33,12 +37,15 @@ private:
 class RLS3D
 {
 public:
+  RLS3D();
   RLS3D(int k_x, int k_y, int k_z,
 	std::vector<double> x_new_theta, std::vector<double> y_new_theta, std::vector<double> z_new_theta);
+  
   void update(const Eigen::VectorXd& x, std::vector<double> y);
   void calcVertex();
   std::vector<double> getVertex() const;
   void reset();
+  bool setMatrix(Eigen::MatrixXd& matrix);
 
 public:
   std::vector<RLS> rls3d;
