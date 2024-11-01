@@ -10,7 +10,7 @@
 /* ---------- RLS ---------- */
 RLS::RLS() {}
 
-RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(1.0) 
+RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(0.90) 
 {
   theta.resize(k+1);
   P = Eigen::MatrixXd::Identity(degree+1, degree+1); 
