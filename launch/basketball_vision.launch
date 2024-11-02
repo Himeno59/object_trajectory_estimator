@@ -1,31 +1,115 @@
 <!-- -*- mode: xml -*- --><!-- -*- mode: xml -*- -->
 <launch>
   <arg name="manager"      default="nodelet_manager"/>
-  <arg name="namespace"    default=""/>
+  <arg name="namespace"    default="rs_d455"/>
   <arg name="queue_size"   default="5" />
   
   <!-- nodelet manager -->
   <include file="$(find object_trajectory_estimator)/launch/nodelet_manager.launch">
-    <arg name="manager"           default="$(arg manager)" />
-    <arg name="namespace"         default="$(arg namespace)" />
+    <arg name="manager"       default="$(arg manager)" />
+    <arg name="namespace"     default="$(arg namespace)" />
   </include>
+
+  <!-- realsense d455 -->
+  <include file="$(find realsense2_camera)/launch/rs_d455.launch">
+    <arg name="manager"       default="$(arg manager)" />
+    <arg name="namespace"     default="$(arg namespace)" />
+  </include>
+
+  
+  <group ns="$(arg namespace)">
+    
+    <!-- hsv_color_filter -->
+    <include file="$(find opencv_apps)/launch/hsv_color_filter.launch">
+      <arg name="debug_view" value="false" />
+      <arg name="image" value="/rs_d455/color/image_raw" /> # frame_id = rs_d455_color_optical_frame
+      <arg name="h_limit_max" default="20" doc="The maximum allowed field value Hue" />
+      <arg name="h_limit_min" default="5" doc="The minimum allowed field value Hue" />
+      <arg name="s_limit_max" default="255" doc="The maximum allowed field value Saturation" />
+      <arg name="s_limit_min" default="150" doc="The minimum allowed field value Saturation" />
+      <arg name="v_limit_max" default="255" doc="The maximum allowed field value Value" />
+      <arg name="v_limit_min" default="0" doc="The minimum allowed field value Value" />
+    </include>
+
+    <!-- Opening -->
+    <node name="morphology_open"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_perception/Opening $(arg manager)"
+          output="screen" >
+      <remap from="~input" to="hsv_color_filter/image" />
+      <param name="size"       value="3" /> 
+      <param name="iterations" value="1" />
+    </node>
+
+    <!-- Apply mask -->
+    <node name="apply_mask_image"
+          pkg="nodelet" type="nodelet"
+          args="load jsk_perception/ApplyMaskImage $(arg manager)"
+          respawn="true" >
+      <remap from="~input" to="aligned_depth_to_color/image_raw" />
+      <remap from="~input/mask" to="morphology_open/output" />
+      <rosparam>
+        approximate_sync: true
+        clip: false
+      </rosparam>
+    </node>
+
+    <!-- depth_image -> pointcloud -->
+    <node name="points_xyzrgb"
+          pkg="nodelet" type="nodelet"
+          args="load depth_image_proc/point_cloud_xyzrgb $(arg manager)" >
+      <remap from="rgb/camera_info"             to="/rs_d455/color/camera_info"/>
+      <remap from="rgb/image_rect_color"        to="/rs_d455/color/image_raw"/>
+      <remap from="depth_registered/image_rect" to="/rs_d455/apply_mask_image/output"/>
+      <remap from="depth_registered/points"     to="/rs_d455/filtered/aligned_depth_to_color/points"/>
+      <param name="queue_size" type="int" value="$(arg queue_size)"/>
+    </node>
+
+    <!-- roi -->
+    <node name="attention_clipper"
+          pkg="nodelet" type="nodelet"
+          args="standalone jsk_pcl/AttentionClipper">
+      <remap from="~input/points" to="filtered/aligned_depth_to_color/points" />
+      <rosparam>
+        initial_pos: [0.0, 0.5, 0.7]
+        initial_rot: [-0.97, 0, 0]
+        dimension_x: 1.0 # y
+        dimension_y: 1.4 # x
+        dimension_z: 2.0
+        frame_id: rs_d455_color_optical_frame
+      </rosparam>
+    </node>
+    
+    <node name="extract_indices"
+          pkg="jsk_pcl_ros" type="extract_indices">
+      <remap from="~input" to="filtered/aligned_depth_to_color/points" />
+      <remap from="~indices" to="attention_clipper/output/point_indices" />
+    </node>
+
+    <!-- Sphere fitting -> Calc centroid -->
+    <node name="sphere_fitting"
+          pkg="nodelet" type="nodelet"
+          args="load object_trajectory_estimator/SphereFitting $(arg manager)"
+          output="screen">
+      <remap from="~pcl_input" to="extract_indices/output" />
+      <remap from="~center_output" to="center/output" />
+    </node>
+    
+    <!-- <node name="centroid_publisher" -->
+    <!--       pkg="nodelet" type="nodelet" -->
+    <!--       args="load jsk_pcl_utils/CentroidPublisher $(arg manager)"> -->
+    <!--   <remap from="~input" to="extract_indices/output" /> -->
+    <!--   <rosparam> -->
+    <!--     publish_tf: false -->
+    <!--   </rosparam> -->
+    <!-- </node> -->
+    
+  </group>
 
   <!-- object_trajectory_estimator -->
   <include file="$(find object_trajectory_estimator)/launch/object_trajectory_estimator.launch">
     <arg name="manager"     default="$(arg manager)" />
     <arg name="namespace"   default="$(arg namespace)" />
   </include>
-
-  <!-- color filter -->
-  <include file="$(find opencv_apps)/launch/color_filter.launch">
-    <arg name="manager"     default="$(arg manager)" />
-    <arg name="namespace"   default="$(arg namespace)" />
-  </include>
-
-  <!-- realsense d455 -->
-  <include file="$(find realsense2_camera)/launch/rs_d455.launch">
-    <arg name="manager"     default="$(arg manager)" />
-    <arg name="namespace"   default="$(arg namespace)" />
-  </include>
-
+  
 </launch>
