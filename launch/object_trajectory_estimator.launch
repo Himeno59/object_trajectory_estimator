@@ -24,7 +24,7 @@
         init_thr: 0.0
         start_thr: -0.50
         pred_time: 0.10
-        bound_thr: -0.70
+        bound_thr: -0.80
         wait_fb: 0.050
         x_init_theta: [ 0.55, -0.05]
         <!-- y_init_theta: [-0.42, 0.0] -->
