@@ -8,6 +8,8 @@ find_package(catkin REQUIRED COMPONENTS
   nodelet
   geometry_msgs
   std_msgs
+  pcl_ros
+  pcl_conversions
   tf2_msgs
   tf2_geometry_msgs
   tf
@@ -70,6 +72,7 @@ add_library(${PROJECT_NAME}
   src/recursive_least_square.cpp
   src/least_square.cpp
   src/depth_min.cpp
+  src/sphere_fitting.cpp
   )
 target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
