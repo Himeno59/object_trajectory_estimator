@@ -126,15 +126,15 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
     
     // 高さ+速度ver
     if (tmp_transformedPoint.point.z > bound_thr) {
-      if (tmp_vel[2] > 0 && prev_state.vel.z > 0) {
+      if (tmp_vel[2] >= 0 && prev_state.vel.z >= 0) {
     	predict_flag = true;
-      } else if (tmp_vel[2] > 0 && prev_state.vel.z <= 0) {
+      } else if (tmp_vel[2] >= 0 && prev_state.vel.z < 0) {
     	predict_flag = false;
     	current_time += dt; // リセットしない
-      } else if (tmp_vel[2] <= 0 && prev_state.vel.z > 0) {
+      } else if (tmp_vel[2] < 0 && prev_state.vel.z >= 0) {
     	predict_flag = false;
     	current_time += dt; // リセットしない
-      } else if (tmp_vel[2] <= 0 && prev_state.vel.z <= 0) {
+      } else if (tmp_vel[2] < 0 && prev_state.vel.z < 0) {
     	predict_flag = false;
     	current_time = 0.0; // リセットしてok
     	// rlsの共分散行列初期化
@@ -149,7 +149,17 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
       rls.reset();
       // フィルターのwindowのbuffを消す
       window.clear();
-    }    
+    }
+  }
+
+  if ( current_time == 0.0 && predict_flag == true ) {
+    // 予測の初回時にinit_thetaの位置の部分をセットし直す
+    std::vector<double> x_theta = {tmp_transformedPoint.point.x};
+    std::vector<double> y_theta = {tmp_transformedPoint.point.y};
+    std::vector<double> z_theta = {tmp_transformedPoint.point.y};
+    rls.rls3d[0].setParameters(x_theta);
+    rls.rls3d[1].setParameters(y_theta);
+    rls.rls3d[2].setParameters(z_theta);
   }
 }
 
@@ -262,7 +272,7 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_
   geometry_msgs::TransformStamped trans;
   trans = tfBuffer.lookupTransform(base_frame, camera_frame, ros::Time(0)); // (出力, 入力)の順番
   geometry_msgs::PointStamped transformedPoint;
-  tf2::doTransform(tmp_point, transformedPoint, trans);
+  tf2::doTransform(tmp_point, transformedPoint, trans); // 入力、出力、かける行列
   // transformedPoint.point.z += k + centroid_offset;
   // transformedPoint.header.stamp = ros::Time::now();
   
