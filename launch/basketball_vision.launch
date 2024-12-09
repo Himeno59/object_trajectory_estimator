@@ -15,7 +15,6 @@
     <arg name="manager"       default="$(arg manager)" />
     <arg name="namespace"     default="$(arg namespace)" />
   </include>
-
   
   <group ns="$(arg namespace)">
     
@@ -26,7 +25,7 @@
       <arg name="h_limit_max" default="20" doc="The maximum allowed field value Hue" />
       <arg name="h_limit_min" default="5" doc="The minimum allowed field value Hue" />
       <arg name="s_limit_max" default="255" doc="The maximum allowed field value Saturation" />
-      <arg name="s_limit_min" default="150" doc="The minimum allowed field value Saturation" />
+      <arg name="s_limit_min" default="120" doc="The minimum allowed field value Saturation" />
       <arg name="v_limit_max" default="255" doc="The maximum allowed field value Value" />
       <arg name="v_limit_min" default="0" doc="The minimum allowed field value Value" />
     </include>
@@ -74,7 +73,7 @@
         initial_pos: [0.0, 0.5, 0.7]
         initial_rot: [-0.97, 0, 0]
         dimension_x: 1.0 # y
-        dimension_y: 1.4 # x
+        dimension_y: 1.8 # x
         dimension_z: 2.0
         frame_id: rs_d455_color_optical_frame
       </rosparam>
@@ -94,22 +93,38 @@
       <remap from="~pcl_input" to="extract_indices/output" />
       <remap from="~center_output" to="center/output" />
     </node>
-    
-    <!-- <node name="centroid_publisher" -->
-    <!--       pkg="nodelet" type="nodelet" -->
-    <!--       args="load jsk_pcl_utils/CentroidPublisher $(arg manager)"> -->
-    <!--   <remap from="~input" to="extract_indices/output" /> -->
-    <!--   <rosparam> -->
-    <!--     publish_tf: false -->
-    <!--   </rosparam> -->
-    <!-- </node> -->
+
+    <!-- object_trajectory_estimator -->
+    <node name="object_trajectory_estimator"
+  	      pkg="nodelet" type="nodelet"
+  	      args="load object_trajectory_estimator/ObjectTrajectoryEstimator $(arg manager)"
+  	      output="screen">
+      <remap from="~point_input" to="center/output" />
+      <remap from="~current_state_output" to="object_trajectory_estimator/current_ball_state" />
+      <remap from="~pred_state_output" to="object_trajectory_estimator/pred_ball_state" />
+      <remap from="~current_state_pos_output" to="object_trajectory_estimator/current_ball_state_pos" />
+      <rosparam>
+        frame_id: BODY
+        camera_frame: rs_d455_color_optical_frame
+        base_frame: BODY
+        init_thr: 0.0
+        start_thr: -0.50
+        pred_time: 0.10
+        bound_thr: -0.75
+        wait_fb: 0.050
+        x_init_theta: [ 0.66, -0.05]
+        y_init_theta: [0.40, 0.0]
+        z_init_theta: [-0.74, 4.4]
+        centroid_offset: 0.0
+      </rosparam>
+    </node>
     
   </group>
 
-  <!-- object_trajectory_estimator -->
-  <include file="$(find object_trajectory_estimator)/launch/object_trajectory_estimator.launch">
-    <arg name="manager"     default="$(arg manager)" />
-    <arg name="namespace"   default="$(arg namespace)" />
-  </include>
+  <!-- <!-\- object_trajectory_estimator -\-> -->
+  <!-- <include file="$(find object_trajectory_estimator)/launch/object_trajectory_estimator.launch"> -->
+  <!--   <arg name="manager"     default="$(arg manager)" /> -->
+  <!--   <arg name="namespace"   default="$(arg namespace)" /> -->
+  <!-- </include> -->
   
 </launch>
