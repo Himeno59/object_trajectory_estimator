@@ -27,9 +27,9 @@ void SphereFitting::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& c
     pcl::SACSegmentation<pcl::PointXYZ> seg;
     seg.setOptimizeCoefficients(true); // 最適化
     seg.setModelType(pcl::SACMODEL_SPHERE); // 球の推定
-    seg.setMethodType(pcl::SAC_RANSAC); // 手法の選択
+    seg.setMethodType(pcl::SAC_RANSAC); // 手法の選択 -> SAC
     seg.setDistanceThreshold(thr_); // モデルとポイントの許容距離
-    seg.setRadiusLimits(radius_ - 0.01, radius_ + 0.01);  // 半径範囲を設定
+    seg.setRadiusLimits(radius_ - thr_, radius_ + thr_);  // 半径範囲を設定    
     
     pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
     pcl::ModelCoefficients::Ptr coefficients(new pcl::ModelCoefficients);
@@ -40,7 +40,7 @@ void SphereFitting::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& c
     
     if (inliers->indices.empty())
       {
-        ROS_WARN("No sphere found in the point cloud.");
+        // ROS_WARN("No sphere found in the point cloud.");
         return;
       }
     
@@ -53,7 +53,7 @@ void SphereFitting::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& c
     
     // 重心のパブリッシュ
     center_pub_.publish(sphere_center);
-    ROS_INFO("Sphere center found at: (%f, %f, %f)", sphere_center.point.x, sphere_center.point.y, sphere_center.point.z);
+    // ROS_INFO("Sphere center found at: (%f, %f, %f)", sphere_center.point.x, sphere_center.point.y, sphere_center.point.z);
   
 
     // // RANSACを使用して球をフィッティング
