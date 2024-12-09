@@ -46,15 +46,21 @@ Eigen::VectorXd RLS::getParameters() const {
 }
 
 bool RLS::setParameters(std::vector<double>& new_theta) {
-  if (theta.size() == new_theta.size()) {
-    for (int i=0;i<theta.size();i++) {
-      theta[i] = new_theta[i];
-    }
-    return true;
-  } else {
-    std::cout << "not match degree" << std::endl;
-    return false;
+  // new_thetaで入った分だけ書き換える
+  // todo: 特定の箇所だけ書き換えられるようにする
+  for (int i=0;i<new_theta.size();i++) {
+    theta[i] = new_theta[i];
   }
+  
+  // if (theta.size() == new_theta.size()) {
+  //   for (int i=0;i<theta.size();i++) {
+  //     theta[i] = new_theta[i];
+  //   }
+  //   return true;
+  // } else {
+  //   std::cout << "not match degree" << std::endl;
+  //   return false;
+  // }
 }
 
 bool RLS::setMatrix(Eigen::MatrixXd& matrix) {
