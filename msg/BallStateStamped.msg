@@ -5,5 +5,5 @@ std_msgs/Float32MultiArray theta
 float64 target_tm
 float64[2] x_theta
 float64[2] y_theta
-float64[3] z_theta
+float64[2] z_theta
 std_msgs/Bool fb_flag
