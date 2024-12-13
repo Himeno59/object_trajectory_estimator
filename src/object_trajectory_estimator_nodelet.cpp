@@ -212,6 +212,16 @@ void ObjectTrajectoryEstimator::calcPredState() {
       pred_state.pos.x = rls.getVertex()[0];
       pred_state.pos.y = rls.getVertex()[1];
       pred_state.pos.z = std::min(rls.getVertex()[2] - 0.5*GRAVITY*pow(rls.vertexTime, 2), 1.0); // 1.0以下に抑える
+
+      // 係数
+      for (int i=0;i<pred_state.x_theta.size();i++) pred_state.x_theta[i] = rls.rls3d[0].getParameters()[i];
+      for (int i=0;i<pred_state.y_theta.size();i++) pred_state.y_theta[i] = rls.rls3d[1].getParameters()[i];
+      for (int i=0;i<pred_state.z_theta.size();i++) {
+        pred_state.z_theta[i] = rls.rls3d[2].getParameters()[i];
+        std::cerr << "theta: " << pred_state.z_theta[i] << std::endl;
+      }
+      
+      
     } else {
       pred_state.fb_flag.data = false;
     }

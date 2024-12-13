@@ -73,3 +73,10 @@ add_executable(set_rls_matrix
 target_link_libraries(set_rls_matrix
   ${catkin_LIBRARIES}
   )
+
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES ${PROJECT_NAME}
+  # CATKIN_DEPENDS roscpp rospy nodelet pluginlib tf tf2 tf2_ros cv_bridge pcl_ros pcl_conversions sensor_msgs geometry_msgs std_msgs tf2_msgs tf2_geometry_msgs message_generation
+  # DEPENDS system_lib
+)

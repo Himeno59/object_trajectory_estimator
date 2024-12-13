@@ -1,5 +1,9 @@
 Header header
 geometry_msgs/Point pos
 geometry_msgs/Vector3 vel
+std_msgs/Float32MultiArray theta
 float64 target_tm
+float64[2] x_theta
+float64[2] y_theta
+float64[3] z_theta
 std_msgs/Bool fb_flag
