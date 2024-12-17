@@ -156,7 +156,7 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
     // 予測の初回時にinit_thetaの位置の部分をセットし直す
     std::vector<double> x_theta = {tmp_transformedPoint.point.x};
     std::vector<double> y_theta = {tmp_transformedPoint.point.y};
-    std::vector<double> z_theta = {tmp_transformedPoint.point.y};
+    std::vector<double> z_theta = {tmp_transformedPoint.point.z};
     rls.rls3d[0].setParameters(x_theta);
     rls.rls3d[1].setParameters(y_theta);
     rls.rls3d[2].setParameters(z_theta);
