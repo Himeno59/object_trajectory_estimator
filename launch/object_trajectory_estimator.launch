@@ -23,12 +23,12 @@
         init_thr: 0.0
         start_thr: -0.50
         pred_time: 0.10
-        bound_thr: -0.70
-        wait_fb: 0.060
+        bound_thr: -0.75
+        wait_fb: 0.050
         x_init_theta: [ 0.65, -0.05]
         <!-- y_init_theta: [-0.42, 0.0] -->
-        y_init_theta: [0.42, 0.0]
-        z_init_theta: [-0.69, 4.4] <!-- bound_thrより少しだけ大きくしておく -->
+        y_init_theta: [0.40, 0.0]
+        z_init_theta: [-0.74, 4.4] <!-- bound_thrより少しだけ大きくしておく -->
         <!-- centroid_offset: 0.030 # fix 2024/10/30-->
         centroid_offset: 0.0
       </rosparam>

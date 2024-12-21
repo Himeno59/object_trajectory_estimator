@@ -35,6 +35,7 @@ void RLS::update(const Eigen::VectorXd& x, double y) {
   // thetaにnanなどが含まれていた場合の処理 -> 直前の値を入れる
   if (theta.hasNaN() || (theta.array() == std::numeric_limits<double>::infinity()).any() || (theta.array() == -std::numeric_limits<double>::infinity()).any()) {
     theta = tmp_theta;
+    std::cerr << "can't update" << std::endl;
   } else {
     // 含まれていなければ共分散行列を更新する
     P = (Eigen::MatrixXd::Identity(theta.size(), theta.size()) - K * x.transpose()) * P / lambda;
