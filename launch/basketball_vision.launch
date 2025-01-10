@@ -36,7 +36,7 @@
           args="load jsk_perception/Opening $(arg manager)"
           output="screen" >
       <remap from="~input" to="hsv_color_filter/image" />
-      <param name="size"       value="3" /> 
+      <param name="size"       value="3" />
       <param name="iterations" value="1" />
     </node>
 
@@ -112,7 +112,7 @@
         pred_time: 0.10
         bound_thr: -0.75
         wait_fb: 0.050
-        x_init_theta: [ 0.66, -0.05]
+        x_init_theta: [ 0.745, -0.05]
         y_init_theta: [0.40, 0.0]
         z_init_theta: [-0.74, 4.4]
         centroid_offset: 0.0
@@ -121,10 +121,9 @@
     
   </group>
 
-  <!-- <!-\- object_trajectory_estimator -\-> -->
-  <!-- <include file="$(find object_trajectory_estimator)/launch/object_trajectory_estimator.launch"> -->
-  <!--   <arg name="manager"     default="$(arg manager)" /> -->
-  <!--   <arg name="namespace"   default="$(arg namespace)" /> -->
-  <!-- </include> -->
+  <node pkg="tf2_ros"
+        type="static_transform_publisher"
+        name="rleg_link5_to_rs_d455"
+        args="0.11925 -0.0655 -0.06877 0 -0.6981 3.14159 /RLEG_LINK5 /rs_d455_link"/>
   
 </launch>
