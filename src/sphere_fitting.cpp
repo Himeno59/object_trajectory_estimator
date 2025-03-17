@@ -1,6 +1,6 @@
-#include "object_trajectory_estimator/sphere_fitting.h"
+#include "bouncing_ball_estimator/sphere_fitting.h"
 
-namespace object_trajectory_estimator
+namespace bouncing_ball_estimator
 {
   
 SphereFitting::SphereFitting() {}
@@ -91,7 +91,7 @@ void SphereFitting::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& c
     // }
 }
 
-} // namespace object_trajectory_estimator
+} // namespace bouncing_ball_estimator
 
 // Register the nodelet
 #ifdef USE_PLUGINLIB_CLASS_LIST_MACROS_H
@@ -99,4 +99,4 @@ void SphereFitting::pointCloudCallback(const sensor_msgs::PointCloud2ConstPtr& c
 #else
 #include <pluginlib/class_list_macros.hpp>
 #endif
-PLUGINLIB_EXPORT_CLASS(object_trajectory_estimator::SphereFitting, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(bouncing_ball_estimator::SphereFitting, nodelet::Nodelet);

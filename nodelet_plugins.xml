@@ -1,20 +1,13 @@
-<library path="lib/libobject_trajectory_estimator">
-  <class name="object_trajectory_estimator/ObjectTrajectoryEstimator"
-	 type="object_trajectory_estimator::ObjectTrajectoryEstimator"
+<library path="lib/libbouncing_ball_estimator">
+  <class name="bouncing_ball_estimator/BouncingBallEstimator"
+	 type="bouncing_ball_estimator::BouncingBallEstimator"
 	 base_class_type="nodelet::Nodelet">
     <description>
-      This is the ObjectTrajectoryEstimator nodelet.
+      This is the BouncingBallEstimator nodelet.
     </description>
   </class>
-  <class name="object_trajectory_estimator/DepthMinMaskNode"
-	 type="object_trajectory_estimator::DepthMinMaskNode"
-	 base_class_type="nodelet::Nodelet">
-    <description>
-      This is the DepthMin nodelet.
-    </description>
-  </class>
-  <class name="object_trajectory_estimator/SphereFitting"
-	 type="object_trajectory_estimator::SphereFitting"
+  <class name="bouncing_ball_estimator/SphereFitting"
+	 type="bouncing_ball_estimator::SphereFitting"
 	 base_class_type="nodelet::Nodelet">
     <description>
       This is the SphereFitting nodelet.

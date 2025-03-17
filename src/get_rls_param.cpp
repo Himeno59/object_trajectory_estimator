@@ -1,5 +1,5 @@
 #include "ros/ros.h"
-#include "object_trajectory_estimator/GetRLSParameters.h"
+#include "bouncing_ball_estimator/GetRLSParameters.h"
 
 int main(int argc, char** argv)
 {
@@ -11,9 +11,9 @@ int main(int argc, char** argv)
     }
 
     ros::NodeHandle nh;
-    ros::ServiceClient client = nh.serviceClient<object_trajectory_estimator::GetRLSParameters>("/ObjectTrajectoryEstimator/get_rls_parameters");
+    ros::ServiceClient client = nh.serviceClient<bouncing_ball_estimator::GetRLSParameters>("/BouncingBallEstimator/get_rls_parameters");
 
-    object_trajectory_estimator::GetRLSParameters srv;
+    bouncing_ball_estimator::GetRLSParameters srv;
 
     if (client.call(srv))
     {

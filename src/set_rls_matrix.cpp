@@ -1,5 +1,5 @@
 #include "ros/ros.h"
-#include "object_trajectory_estimator/SetRLSMatrix.h"
+#include "bouncing_ball_estimator/SetRLSMatrix.h"
 #include <vector>
 
 int main(int argc, char **argv) {
@@ -23,10 +23,10 @@ int main(int argc, char **argv) {
     }
 
     // サービスクライアントの作成
-    ros::ServiceClient client = nh.serviceClient<object_trajectory_estimator::SetRLSMatrix>("/ObjectTrajectoryEstimator/set_rls_matrix");
+    ros::ServiceClient client = nh.serviceClient<bouncing_ball_estimator::SetRLSMatrix>("/BouncingBallEstimator/set_rls_matrix");
 
     // サービスリクエストのオブジェクトを作成
-    object_trajectory_estimator::SetRLSMatrix srv;
+    bouncing_ball_estimator::SetRLSMatrix srv;
 
     // リクエストに行数と列数を設定
     srv.request.rows = rows;

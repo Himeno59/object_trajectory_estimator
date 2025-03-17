@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>object_trajectory_estimator</name>
+  <name>bouncing_ball_estimator</name>
   <version>0.0.0</version>
-  <description>The object_trajectory_estimator package</description>
+  <description>The bouncing_ball_estimator package</description>
   <maintainer email="himeno@todo.todo">himeno</maintainer>
   <license>TODO</license>
   

@@ -12,7 +12,7 @@
 #include <pcl/sample_consensus/ransac.h>
 #include <pcl/sample_consensus/sac_model_sphere.h>
 
-namespace object_trajectory_estimator
+namespace bouncing_ball_estimator
 {
   class SphereFitting : public nodelet::Nodelet {
   public:
@@ -33,6 +33,6 @@ namespace object_trajectory_estimator
     double thr_;
   };
   
-} // namespace object_trajectory_estimator
+} // namespace bouncing_ball_estimator
 
 #endif // SPHERE_FITTING_H

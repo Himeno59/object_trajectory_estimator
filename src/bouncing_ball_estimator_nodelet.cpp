@@ -1,26 +1,26 @@
-#include "object_trajectory_estimator/object_trajectory_estimator_nodelet.h"
+#include "bouncing_ball_estimator/bouncing_ball_estimator_nodelet.h"
 
 #include "numeric" 
 
-namespace object_trajectory_estimator {
+namespace bouncing_ball_estimator {
 
-ObjectTrajectoryEstimator::ObjectTrajectoryEstimator()
+BouncingBallEstimator::BouncingBallEstimator()
   : tfListener(tfBuffer) {}
 
-void ObjectTrajectoryEstimator::onInit() {
+void BouncingBallEstimator::onInit() {
   // node handler
   nh = getNodeHandle();
   pnh = getPrivateNodeHandle();  
   // srv
-  setService = nh.advertiseService("/ObjectTrajectoryEstimator/set_rls_parameters", &ObjectTrajectoryEstimator::setRLSParameters, this);
-  matrixService = nh.advertiseService("/ObjectTrajectoryEstimator/set_rls_matrix", &ObjectTrajectoryEstimator::setRLSMatrix, this);
-  getService = nh.advertiseService("/ObjectTrajectoryEstimator/get_rls_parameters", &ObjectTrajectoryEstimator::getRLSParameters, this);
+  setService = nh.advertiseService("/BouncingBallEstimator/set_rls_parameters", &BouncingBallEstimator::setRLSParameters, this);
+  matrixService = nh.advertiseService("/BouncingBallEstimator/set_rls_matrix", &BouncingBallEstimator::setRLSMatrix, this);
+  getService = nh.advertiseService("/BouncingBallEstimator/get_rls_parameters", &BouncingBallEstimator::getRLSParameters, this);
   // subscriber
-  point_sub = pnh.subscribe("point_input", 1, &ObjectTrajectoryEstimator::callback, this);
+  point_sub = pnh.subscribe("point_input", 1, &BouncingBallEstimator::callback, this);
   // publisher
-  current_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("current_state_output", 1);
-  pred_state_pub = pnh.advertise<object_trajectory_estimator::BallStateStamped>("pred_state_output", 1);
-  check_pub = pnh.advertise<object_trajectory_estimator::FbCheck>("fb_check", 1);
+  current_state_pub = pnh.advertise<bouncing_ball_estimator::BallStateStamped>("current_state_output", 1);
+  pred_state_pub = pnh.advertise<bouncing_ball_estimator::BallStateStamped>("pred_state_output", 1);
+  check_pub = pnh.advertise<bouncing_ball_estimator::FbCheck>("fb_check", 1);
   current_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("current_state_pos_output", 1);
   
   // rosparam
@@ -59,7 +59,7 @@ void ObjectTrajectoryEstimator::onInit() {
   window_size = 3;
 }
 
-void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::ConstPtr &msg) {
+void BouncingBallEstimator::callback(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // stampの更新 & dtの計算
   updateStamp(msg);
   
@@ -82,7 +82,7 @@ void ObjectTrajectoryEstimator::callback(const geometry_msgs::PointStamped::Cons
   pred_state.fb_flag.data = false;
 }
 
-void ObjectTrajectoryEstimator::publish() {
+void BouncingBallEstimator::publish() {
   current_state_pub.publish(current_state);
   pred_state_pub.publish(pred_state);
   if (predict_flag) {
@@ -98,7 +98,7 @@ void ObjectTrajectoryEstimator::publish() {
   }
 }
 
-void ObjectTrajectoryEstimator::updateStamp(const geometry_msgs::PointStamped::ConstPtr &msg) {
+void BouncingBallEstimator::updateStamp(const geometry_msgs::PointStamped::ConstPtr &msg) {
   current_state.header.stamp = msg->header.stamp;
   pred_state.header.stamp = msg->header.stamp;
   fb_check.header.stamp = msg->header.stamp;
@@ -106,7 +106,7 @@ void ObjectTrajectoryEstimator::updateStamp(const geometry_msgs::PointStamped::C
   dt = (current_state.header.stamp - prev_state.header.stamp).toSec();
 }
 
-void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::ConstPtr &msg) {
+void BouncingBallEstimator::stateManager(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // 判定用の値設定
   // 座標変換->フィルターの順番
   geometry_msgs::PointStamped tmp_transformedPoint = transformPoint(tfBuffer, *msg); // 引数がgeometry_msgs::PointStampedなので参照渡し
@@ -165,7 +165,7 @@ void ObjectTrajectoryEstimator::stateManager(const geometry_msgs::PointStamped::
   }
 }
 
-void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg) {
+void BouncingBallEstimator::calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // 座標変換
   // geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, *msg);
   geometry_msgs::PointStamped filteredPoint = transformPoint(tfBuffer, *msg);
@@ -190,7 +190,7 @@ void ObjectTrajectoryEstimator::calcCurrentState(const geometry_msgs::PointStamp
   current_state_pos.point.z = filteredPoint.point.z;
 }
 
-void ObjectTrajectoryEstimator::calcPredState() {
+void BouncingBallEstimator::calcPredState() {
   if (loop_init) { // 予測開始時を0[s]にする + 一周目はrlsをupdateしない
     current_time += dt;
     
@@ -234,7 +234,7 @@ void ObjectTrajectoryEstimator::calcPredState() {
   loop_init = true;
 }
 
-geometry_msgs::PointStamped ObjectTrajectoryEstimator::applyFilter(const geometry_msgs::PointStamped &msg) {
+geometry_msgs::PointStamped BouncingBallEstimator::applyFilter(const geometry_msgs::PointStamped &msg) {
   // windowへの追加
   Eigen::Vector3d pos(msg.point.x, msg.point.y, msg.point.z);
   window.push_back(pos);
@@ -258,7 +258,7 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::applyFilter(const geometr
   return filteredPoint;
 }
 
-geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg) {
+geometry_msgs::PointStamped BouncingBallEstimator::transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg) {
   // 半球殻の重心->球の重心
   Eigen::Vector3d pos(msg.point.x, msg.point.y, msg.point.z);
   Eigen::Vector3d fixed_pos;
@@ -286,7 +286,7 @@ geometry_msgs::PointStamped ObjectTrajectoryEstimator::transformPoint(const tf2_
   return transformedPoint;
 }
 
-void ObjectTrajectoryEstimator::calcInitState() {
+void BouncingBallEstimator::calcInitState() {
   init_vel.push_back(current_state.vel.z);
   if (init_vel.size() == 3) {
     std::vector<double> new_theta = {current_state.pos.z, std::accumulate(init_vel.begin(), init_vel.end(), 0.0) / 3.0};
@@ -297,16 +297,16 @@ void ObjectTrajectoryEstimator::calcInitState() {
 }
     
 // srv
-bool ObjectTrajectoryEstimator::setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request &req,
-                                                 object_trajectory_estimator::SetRLSParameters::Response &res) {
+bool BouncingBallEstimator::setRLSParameters(bouncing_ball_estimator::SetRLSParameters::Request &req,
+                                                 bouncing_ball_estimator::SetRLSParameters::Response &res) {
   std::vector<double> params(req.params.begin(), req.params.end());
   bool success = rls.rls3d[2].setParameters(params);
   res.success = success;
   return true;
 }
 
-bool ObjectTrajectoryEstimator::setRLSMatrix(object_trajectory_estimator::SetRLSMatrix::Request &req,
-                                             object_trajectory_estimator::SetRLSMatrix::Response &res) {
+bool BouncingBallEstimator::setRLSMatrix(bouncing_ball_estimator::SetRLSMatrix::Request &req,
+                                             bouncing_ball_estimator::SetRLSMatrix::Response &res) {
   Eigen::MatrixXd matrix(req.rows, req.cols);
 
   int index = 0;
@@ -325,15 +325,15 @@ bool ObjectTrajectoryEstimator::setRLSMatrix(object_trajectory_estimator::SetRLS
   return true;
 }
   
-bool ObjectTrajectoryEstimator::getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request &req,
-                                                 object_trajectory_estimator::GetRLSParameters::Response &res) {
+bool BouncingBallEstimator::getRLSParameters(bouncing_ball_estimator::GetRLSParameters::Request &req,
+                                                 bouncing_ball_estimator::GetRLSParameters::Response &res) {
   res.params[0] = rls.rls3d[2].getParameters()[0];
   res.params[1] = rls.rls3d[2].getParameters()[1];
   return true;
 }
 
 
-} // namespace object_trajectory_estimator
+} // namespace bouncing_ball_estimator
 
 // Register the nodelet
 #ifdef USE_PLUGINLIB_CLASS_LIST_MACROS_H
@@ -341,4 +341,4 @@ bool ObjectTrajectoryEstimator::getRLSParameters(object_trajectory_estimator::Ge
 #else
 #include <pluginlib/class_list_macros.hpp>
 #endif
-PLUGINLIB_EXPORT_CLASS(object_trajectory_estimator::ObjectTrajectoryEstimator, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(bouncing_ball_estimator::BouncingBallEstimator, nodelet::Nodelet);

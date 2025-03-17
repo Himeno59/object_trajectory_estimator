@@ -3,14 +3,14 @@
   <arg name="manager"                      default="manager"/>
   <arg name="namespace"                    default=""/>
   <arg name="point_input"                  default="center/output" />
-  <arg name="current_state_output"         default="object_trajectory_estimator/current_ball_state" />
-  <arg name="pred_state_output"            default="object_trajectory_estimator/pred_ball_state" />
-  <arg name="current_state_pos_output"     default="object_trajectory_estimator/current_ball_state_pos" />
+  <arg name="current_state_output"         default="bouncing_ball_estimator/current_ball_state" />
+  <arg name="pred_state_output"            default="bouncing_ball_estimator/pred_ball_state" />
+  <arg name="current_state_pos_output"     default="bouncing_ball_estimator/current_ball_state_pos" />
   
   <group ns="$(arg namespace)">
-    <node name="object_trajectory_estimator"
+    <node name="bouncing_ball_estimator"
   	  pkg="nodelet" type="nodelet"
-  	  args="load object_trajectory_estimator/ObjectTrajectoryEstimator $(arg manager)"
+  	  args="load bouncing_ball_estimator/BouncingBallEstimator $(arg manager)"
   	  output="screen">
       <remap from="~point_input" to="$(arg point_input)" />
       <remap from="~current_state_output" to="$(arg current_state_output)" />

@@ -5,7 +5,7 @@
   <arg name="queue_size"   default="5" />
   
   <!-- nodelet manager -->
-  <include file="$(find object_trajectory_estimator)/launch/nodelet_manager.launch">
+  <include file="$(find bouncing_ball_estimator)/launch/nodelet_manager.launch">
     <arg name="manager"       default="$(arg manager)" />
     <arg name="namespace"     default="$(arg namespace)" />
   </include>
@@ -88,21 +88,21 @@
     <!-- Sphere fitting -> Calc centroid -->
     <node name="sphere_fitting"
           pkg="nodelet" type="nodelet"
-          args="load object_trajectory_estimator/SphereFitting $(arg manager)"
+          args="load bouncing_ball_estimator/SphereFitting $(arg manager)"
           output="screen">
       <remap from="~pcl_input" to="extract_indices/output" />
       <remap from="~center_output" to="center/output" />
     </node>
 
-    <!-- object_trajectory_estimator -->
-    <node name="object_trajectory_estimator"
+    <!-- bouncing_ball_estimator -->
+    <node name="bouncing_ball_estimator"
   	      pkg="nodelet" type="nodelet"
-  	      args="load object_trajectory_estimator/ObjectTrajectoryEstimator $(arg manager)"
+  	      args="load bouncing_ball_estimator/BouncingBallEstimator $(arg manager)"
   	      output="screen">
       <remap from="~point_input"              to="center/output" />
-      <remap from="~current_state_output"     to="object_trajectory_estimator/current_ball_state" />
-      <remap from="~pred_state_output"        to="object_trajectory_estimator/pred_ball_state" />
-      <remap from="~current_state_pos_output" to="object_trajectory_estimator/current_ball_state_pos" />
+      <remap from="~current_state_output"     to="bouncing_ball_estimator/current_ball_state" />
+      <remap from="~pred_state_output"        to="bouncing_ball_estimator/pred_ball_state" />
+      <remap from="~current_state_pos_output" to="bouncing_ball_estimator/current_ball_state_pos" />
       <rosparam>
         frame_id: BODY
         camera_frame: rs_d455_color_optical_frame

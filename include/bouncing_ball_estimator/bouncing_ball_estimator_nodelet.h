@@ -1,5 +1,5 @@
-#ifndef OBJECT_TRAJECTORY_ESTIMATOR_NODELET_HPP
-#define OBJECT_TRAJECTORY_ESTIMATOR_NODELET_HPP
+#ifndef BOUNCING_BALL_ESTIMATOR_NODELET_HPP
+#define BOUNCING_BALL_ESTIMATOR_NODELET_HPP
 
 #include <ros/ros.h>
 #include <nodelet/nodelet.h>
@@ -10,15 +10,15 @@
 #include <tf2_msgs/TFMessage.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <object_trajectory_estimator/BallStateStamped.h>
-#include <object_trajectory_estimator/FbCheck.h>
+#include <bouncing_ball_estimator/BallStateStamped.h>
+#include <bouncing_ball_estimator/FbCheck.h>
 
-#include <object_trajectory_estimator/SetRLSParameters.h>
-#include <object_trajectory_estimator/SetRLSMatrix.h>
-#include <object_trajectory_estimator/GetRLSParameters.h>
+#include <bouncing_ball_estimator/SetRLSParameters.h>
+#include <bouncing_ball_estimator/SetRLSMatrix.h>
+#include <bouncing_ball_estimator/GetRLSParameters.h>
 
-#include <object_trajectory_estimator/recursive_least_square.hpp>
-#include <object_trajectory_estimator/least_square.hpp>
+#include <bouncing_ball_estimator/recursive_least_square.hpp>
+#include <bouncing_ball_estimator/least_square.hpp>
 
 #include <iostream>
 #include <eigen3/Eigen/Dense>
@@ -28,12 +28,12 @@
 #define GRAVITY 9.80665
 #endif
 
-namespace object_trajectory_estimator {
+namespace bouncing_ball_estimator {
 
-  class ObjectTrajectoryEstimator : public nodelet::Nodelet {
+  class BouncingBallEstimator : public nodelet::Nodelet {
   public:
-    ObjectTrajectoryEstimator();
-    ~ObjectTrajectoryEstimator(){};
+    BouncingBallEstimator();
+    ~BouncingBallEstimator(){};
 
     virtual void onInit();
 
@@ -50,9 +50,9 @@ namespace object_trajectory_estimator {
     geometry_msgs::PointStamped applyFilter(const geometry_msgs::PointStamped &msg);
     geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg);
 
-    bool setRLSParameters(object_trajectory_estimator::SetRLSParameters::Request &req, object_trajectory_estimator::SetRLSParameters::Response &res);
-    bool setRLSMatrix(object_trajectory_estimator::SetRLSMatrix::Request &req, object_trajectory_estimator::SetRLSMatrix::Response &res);
-    bool getRLSParameters(object_trajectory_estimator::GetRLSParameters::Request &req, object_trajectory_estimator::GetRLSParameters::Response &res);
+    bool setRLSParameters(bouncing_ball_estimator::SetRLSParameters::Request &req, bouncing_ball_estimator::SetRLSParameters::Response &res);
+    bool setRLSMatrix(bouncing_ball_estimator::SetRLSMatrix::Request &req, bouncing_ball_estimator::SetRLSMatrix::Response &res);
+    bool getRLSParameters(bouncing_ball_estimator::GetRLSParameters::Request &req, bouncing_ball_estimator::GetRLSParameters::Response &res);
 
     ros::NodeHandle nh;
     ros::NodeHandle pnh;
@@ -68,10 +68,10 @@ namespace object_trajectory_estimator {
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener;
 
-    object_trajectory_estimator::BallStateStamped current_state;
-    object_trajectory_estimator::BallStateStamped pred_state;
-    object_trajectory_estimator::BallStateStamped prev_state;
-    object_trajectory_estimator::FbCheck fb_check;
+    bouncing_ball_estimator::BallStateStamped current_state;
+    bouncing_ball_estimator::BallStateStamped pred_state;
+    bouncing_ball_estimator::BallStateStamped prev_state;
+    bouncing_ball_estimator::FbCheck fb_check;
     geometry_msgs::PointStamped current_state_pos; // visualize用
 
     int window_size;
@@ -108,6 +108,6 @@ namespace object_trajectory_estimator {
     std::vector<double> z_init_theta;
   };
 
-} // namespace object_trajectory_estimator
+} // namespace bouncing_ball_estimator
 
-#endif // OBJECT_TRAJECTORY_ESTIMATOR_NODELET_HPP
+#endif // BOUNCING_BALL_ESTIMATOR_NODELET_HPP

@@ -1,4 +1,4 @@
-#include "object_trajectory_estimator/recursive_least_square.hpp"
+#include "bouncing_ball_estimator/recursive_least_square.hpp"
 
 #include "limits"
 #include "iostream"

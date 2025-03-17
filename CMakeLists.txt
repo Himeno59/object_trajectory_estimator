@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(object_trajectory_estimator)
+project(bouncing_ball_estimator)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -54,13 +54,9 @@ include_directories(
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-  ## rlsによる軌道予測
-  src/object_trajectory_estimator_nodelet.cpp
+  src/bouncing_ball_estimator_nodelet.cpp
   src/recursive_least_square.cpp
   src/least_square.cpp
-  ## 深度画像に対するマスク画像生成
-  src/depth_min.cpp
-  ## ボールへのフィッティング
   src/sphere_fitting.cpp
   )
 target_link_libraries(${PROJECT_NAME}
