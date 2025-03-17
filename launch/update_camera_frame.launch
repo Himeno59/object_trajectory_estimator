@@ -3,7 +3,7 @@
   <node pkg="tf2_ros"
         type="static_transform_publisher"
         name="rleg_link5_to_rs_d455"
-        args="0.11925 -0.0655 -0.06877 0 -0.6981 3.14159 /RLEG_LINK5 /rs_d455_link"/>
+        args="0.11925 -0.0705 -0.06877 0 -0.6981 3.14159 /RLEG_LINK5 /rs_d455_link"/>
   
 </launch>
 

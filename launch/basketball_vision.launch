@@ -112,7 +112,7 @@
         pred_time: 0.10
         bound_thr: -0.75
         wait_fb: 0.050
-        x_init_theta: [ 0.745, -0.05]
+        x_init_theta: [ 0.73, -0.05]
         y_init_theta: [0.40, 0.0]
         z_init_theta: [-0.74, 4.4]
         centroid_offset: 0.0
@@ -120,10 +120,5 @@
     </node>
     
   </group>
-
-  <node pkg="tf2_ros"
-        type="static_transform_publisher"
-        name="rleg_link5_to_rs_d455"
-        args="0.11925 -0.0655 -0.06877 0 -0.6981 3.14159 /RLEG_LINK5 /rs_d455_link"/>
   
 </launch>
