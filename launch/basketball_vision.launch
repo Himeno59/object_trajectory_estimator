@@ -115,7 +115,6 @@
         x_init_theta: [ 0.73, -0.05]
         y_init_theta: [0.40, 0.0]
         z_init_theta: [-0.74, 4.4]
-        centroid_offset: 0.0
       </rosparam>
     </node>
     

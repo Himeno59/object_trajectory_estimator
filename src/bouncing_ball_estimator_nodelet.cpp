@@ -35,7 +35,6 @@ void BouncingBallEstimator::onInit() {
   pnh.getParam("x_init_theta", x_init_theta);
   pnh.getParam("y_init_theta", y_init_theta);
   pnh.getParam("z_init_theta", z_init_theta);
-  pnh.getParam("centroid_offset", centroid_offset);
   // header
   current_state.header.frame_id = frame_id;
   pred_state.header.frame_id = frame_id;
@@ -261,16 +260,7 @@ geometry_msgs::PointStamped BouncingBallEstimator::applyFilter(const geometry_ms
 geometry_msgs::PointStamped BouncingBallEstimator::transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg) {
   // 半球殻の重心->球の重心
   Eigen::Vector3d pos(msg.point.x, msg.point.y, msg.point.z);
-  Eigen::Vector3d fixed_pos;
   geometry_msgs::PointStamped tmp_point;
-  // double D = pos.norm();
-  // double k = 0.1225; // r=0.1225[m]
-  // // double k = 0.50*0.1225; // r=0.1225[m]
-  // fixed_pos = pos + (k + centroid_offset) * pos.normalized();
-  // // fixed_pos = pos + k * pos.normalized();
-  // tmp_point.point.x = fixed_pos.x();
-  // tmp_point.point.y = fixed_pos.y();
-  // tmp_point.point.z = fixed_pos.z();
   tmp_point.point.x = pos.x();
   tmp_point.point.y = pos.y();
   tmp_point.point.z = pos.z();
@@ -280,8 +270,6 @@ geometry_msgs::PointStamped BouncingBallEstimator::transformPoint(const tf2_ros:
   trans = tfBuffer.lookupTransform(base_frame, camera_frame, ros::Time(0)); // (出力, 入力)の順番
   geometry_msgs::PointStamped transformedPoint;
   tf2::doTransform(tmp_point, transformedPoint, trans); // 入力、出力、かける行列
-  // transformedPoint.point.z += k + centroid_offset;
-  // transformedPoint.header.stamp = ros::Time::now();
   
   return transformedPoint;
 }
