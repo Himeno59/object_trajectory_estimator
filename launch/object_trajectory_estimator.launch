@@ -1,10 +1,11 @@
 <!-- -*- mode: xml -*- --><!-- -*- mode: xml -*- -->
 <launch>
-  <arg name="manager"                  default="manager"/>
-  <arg name="namespace"                default=""/>
-  <arg name="point_input"              default="centroid_publisher/output/point" />
-  <arg name="current_state_output"     default="object_trajectory_estimator/current_ball_state" />
-  <arg name="pred_state_output"        default="object_trajectory_estimator/pred_ball_state" />
+  <arg name="manager"                      default="manager"/>
+  <arg name="namespace"                    default=""/>
+  <arg name="point_input"                  default="center/output" />
+  <arg name="current_state_output"         default="object_trajectory_estimator/current_ball_state" />
+  <arg name="pred_state_output"            default="object_trajectory_estimator/pred_ball_state" />
+  <arg name="current_state_pos_output"     default="object_trajectory_estimator/current_ball_state_pos" />
   
   <group ns="$(arg namespace)">
     <node name="object_trajectory_estimator"
@@ -14,18 +15,22 @@
       <remap from="~point_input" to="$(arg point_input)" />
       <remap from="~current_state_output" to="$(arg current_state_output)" />
       <remap from="~pred_state_output" to="$(arg pred_state_output)" />
+      <remap from="~current_state_pos_output" to="$(arg current_state_pos_output)" />
       <rosparam>
-        frame_id: rs_d455_color_optical_frame
+        frame_id: BODY
         camera_frame: rs_d455_color_optical_frame
         base_frame: BODY
         init_thr: 0.0
         start_thr: -0.50
         pred_time: 0.10
-        bound_thr: -0.80
-        wait_fb: 0.0
-        x_init_theta: [ 0.90, 0.0]
-        y_init_theta: [-0.35, 0.0]
-        z_init_theta: [-0.84, 4.0]
+        bound_thr: -0.75
+        wait_fb: 0.050
+        x_init_theta: [ 0.65, -0.05]
+        <!-- y_init_theta: [-0.42, 0.0] -->
+        y_init_theta: [0.40, 0.0]
+        z_init_theta: [-0.74, 4.4] <!-- bound_thrより少しだけ大きくしておく -->
+        <!-- centroid_offset: 0.030 # fix 2024/10/30-->
+        centroid_offset: 0.0
       </rosparam>
     </node>
   </group>

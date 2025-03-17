@@ -10,7 +10,7 @@
 /* ---------- RLS ---------- */
 RLS::RLS() {}
 
-RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(1.0) 
+RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(0.90) 
 {
   theta.resize(k+1);
   P = Eigen::MatrixXd::Identity(degree+1, degree+1); 
@@ -35,6 +35,7 @@ void RLS::update(const Eigen::VectorXd& x, double y) {
   // thetaにnanなどが含まれていた場合の処理 -> 直前の値を入れる
   if (theta.hasNaN() || (theta.array() == std::numeric_limits<double>::infinity()).any() || (theta.array() == -std::numeric_limits<double>::infinity()).any()) {
     theta = tmp_theta;
+    std::cerr << "can't update" << std::endl;
   } else {
     // 含まれていなければ共分散行列を更新する
     P = (Eigen::MatrixXd::Identity(theta.size(), theta.size()) - K * x.transpose()) * P / lambda;
@@ -46,15 +47,21 @@ Eigen::VectorXd RLS::getParameters() const {
 }
 
 bool RLS::setParameters(std::vector<double>& new_theta) {
-  if (theta.size() == new_theta.size()) {
-    for (int i=0;i<theta.size();i++) {
-      theta[i] = new_theta[i];
-    }
-    return true;
-  } else {
-    std::cout << "not match degree" << std::endl;
-    return false;
+  // new_thetaで入った分だけ書き換える
+  // todo: 特定の箇所だけ書き換えられるようにする
+  for (int i=0;i<new_theta.size();i++) {
+    theta[i] = new_theta[i];
   }
+  
+  // if (theta.size() == new_theta.size()) {
+  //   for (int i=0;i<theta.size();i++) {
+  //     theta[i] = new_theta[i];
+  //   }
+  //   return true;
+  // } else {
+  //   std::cout << "not match degree" << std::endl;
+  //   return false;
+  // }
 }
 
 bool RLS::setMatrix(Eigen::MatrixXd& matrix) {

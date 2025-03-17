@@ -6,4 +6,19 @@
       This is the ObjectTrajectoryEstimator nodelet.
     </description>
   </class>
+  <class name="object_trajectory_estimator/DepthMinMaskNode"
+	 type="object_trajectory_estimator::DepthMinMaskNode"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      This is the DepthMin nodelet.
+    </description>
+  </class>
+  <class name="object_trajectory_estimator/SphereFitting"
+	 type="object_trajectory_estimator::SphereFitting"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      This is the SphereFitting nodelet.
+    </description>
+  </class>
 </library>
+  
