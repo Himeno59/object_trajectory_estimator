@@ -1,24 +1,13 @@
 #include "bouncing_ball_estimator/recursive_least_square.hpp"
 
-#include "limits"
-#include "iostream"
+#include <limits>
+#include <iostream>
 
-#ifndef GRAVITY
-#define GRAVITY 9.80665 
-#endif
-
-/* ---------- RLS ---------- */
-RLS::RLS() {}
-
-RLS::RLS(int k, std::vector<double> new_theta) : degree(k), lambda(0.90) 
+RLS::RLS(int k, const std::vector<double>& new_theta, double lambda) : degree(k), lambda(lambda) 
 {
   theta.resize(k+1);
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1); 
-  setP = Eigen::MatrixXd::Identity(degree+1, degree+1) * 1e2;
-  setMatrix(setP);
-  
-  init_theta = new_theta;
-  setParameters(init_theta);
+  setParameters(new_theta);  
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1)*1e2; 
 }
 
 void RLS::update(const Eigen::VectorXd& x, double y) {
@@ -46,22 +35,8 @@ Eigen::VectorXd RLS::getParameters() const {
   return theta;
 }
 
-bool RLS::setParameters(std::vector<double>& new_theta) {
-  // new_thetaで入った分だけ書き換える
-  // todo: 特定の箇所だけ書き換えられるようにする
-  for (int i=0;i<new_theta.size();i++) {
-    theta[i] = new_theta[i];
-  }
-  
-  // if (theta.size() == new_theta.size()) {
-  //   for (int i=0;i<theta.size();i++) {
-  //     theta[i] = new_theta[i];
-  //   }
-  //   return true;
-  // } else {
-  //   std::cout << "not match degree" << std::endl;
-  //   return false;
-  // }
+bool RLS::setParameters(const std::vector<double>& new_theta) {
+  for (int i=0;i<new_theta.size();i++) theta(i) = new_theta[i];
 }
 
 bool RLS::setMatrix(Eigen::MatrixXd& matrix) {
@@ -80,24 +55,17 @@ double RLS::predict(double target_time) {
   for (int i=0;i<degree+1;i++) {
     time_vector(i) = std::pow(target_time, i); 
   }
-  predictValue = time_vector.dot(theta);
-  return predictValue;
+  return time_vector.dot(theta);
 }
 
 void RLS::reset() {
-  // 共分散行列の初期化
-  setMatrix(setP);
-
-  // 係数も毎回初期化?
-  // setParameters(init_theta);
+  setMatrix(setP); // 共分散行列の初期化
 }
 
-/* ---------- RLS3D ---------- */
-RLS3D::RLS3D() {}
-
 RLS3D::RLS3D(int k_x, int k_y, int k_z,
-	     std::vector<double> x_new_theta, std::vector<double> y_new_theta, std::vector<double> z_new_theta)
-  : rls3d{RLS(k_x, x_new_theta), RLS(k_y, y_new_theta), RLS(k_z, z_new_theta)}
+             const std::vector<double>& x_new_theta, const std::vector<double>& y_new_theta, const std::vector<double>& z_new_theta,
+             double lambda)
+  : rls3d{RLS(k_x, x_new_theta, lambda), RLS(k_y, y_new_theta, lambda), RLS(k_z, z_new_theta, lambda)}
 {
   vertexPoint.resize(3);
 }

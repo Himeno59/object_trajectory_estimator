@@ -13,12 +13,12 @@
 #include <bouncing_ball_estimator/BallStateStamped.h>
 #include <bouncing_ball_estimator/FbCheck.h>
 
-#include <bouncing_ball_estimator/SetRLSParameters.h>
-#include <bouncing_ball_estimator/SetRLSMatrix.h>
-#include <bouncing_ball_estimator/GetRLSParameters.h>
+#include "bouncing_ball_estimator/SetRLSParameters.h"
+#include "bouncing_ball_estimator/SetRLSMatrix.h"
+#include "bouncing_ball_estimator/GetRLSParameters.h"
 
-#include <bouncing_ball_estimator/recursive_least_square.hpp>
-#include <bouncing_ball_estimator/least_square.hpp>
+#include "bouncing_ball_estimator/recursive_least_square.hpp"
+#include "bouncing_ball_estimator/least_square.hpp"
 
 #include <iostream>
 #include <eigen3/Eigen/Dense>
@@ -42,11 +42,9 @@ namespace bouncing_ball_estimator {
     void publish();
     void updateStamp(const geometry_msgs::PointStamped::ConstPtr &msg);
     void stateManager(const geometry_msgs::PointStamped::ConstPtr &point);
-    
     void calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg);
     void calcPredState();
     
-    void calcInitState();
     geometry_msgs::PointStamped applyFilter(const geometry_msgs::PointStamped &msg);
     geometry_msgs::PointStamped transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg);
 
@@ -76,22 +74,17 @@ namespace bouncing_ball_estimator {
 
     int window_size;
     std::vector<Eigen::Vector3d> window;
-    int rls_degree;
+
     RLS3D rls;
 
     double dt;
     double current_time;
-    double target_time;
-    Eigen::VectorXd timeVector;
 
     // flag
     bool ready_flag;
     bool ballSet_flag;
-    bool theta_initialize;
     bool predict_flag;
     bool loop_init;
-
-    std::vector<double> init_vel;
 
     // rosparam
     std::string frame_id;
@@ -100,12 +93,11 @@ namespace bouncing_ball_estimator {
     double init_thr;
     double start_thr;
     double bound_thr;
-    double pred_time;
     double wait_fb;
-    double centroid_offset;
     std::vector<double> x_init_theta;
     std::vector<double> y_init_theta;
     std::vector<double> z_init_theta;
+    double lambda;
   };
 
 } // namespace bouncing_ball_estimator

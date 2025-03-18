@@ -1,6 +1,5 @@
 #include "bouncing_ball_estimator/bouncing_ball_estimator_nodelet.h"
-
-#include "numeric" 
+#include <numeric>
 
 namespace bouncing_ball_estimator {
 
@@ -21,8 +20,7 @@ void BouncingBallEstimator::onInit() {
   current_state_pub = pnh.advertise<bouncing_ball_estimator::BallStateStamped>("current_state_output", 1);
   pred_state_pub = pnh.advertise<bouncing_ball_estimator::BallStateStamped>("pred_state_output", 1);
   check_pub = pnh.advertise<bouncing_ball_estimator::FbCheck>("fb_check", 1);
-  current_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("current_state_pos_output", 1);
-  
+  current_state_pos_pub = pnh.advertise<geometry_msgs::PointStamped>("current_state_pos_output", 1);  
   // rosparam
   pnh.getParam("frame_id", frame_id);
   pnh.getParam("camera_frame", camera_frame);
@@ -30,43 +28,37 @@ void BouncingBallEstimator::onInit() {
   pnh.getParam("init_thr", init_thr);
   pnh.getParam("start_thr", start_thr);
   pnh.getParam("bound_thr", bound_thr);
-  pnh.getParam("pred_time", pred_time);
   pnh.getParam("wait_fb", wait_fb);
   pnh.getParam("x_init_theta", x_init_theta);
   pnh.getParam("y_init_theta", y_init_theta);
   pnh.getParam("z_init_theta", z_init_theta);
-  // header
+  pnh.getParam("lambda", lambda);
+  // frame_id
   current_state.header.frame_id = frame_id;
   pred_state.header.frame_id = frame_id;
   current_state_pos.header.frame_id = frame_id;
-
   // rls
-  rls = RLS3D(1, 1, 1, x_init_theta, y_init_theta, z_init_theta);
-  
+  rls = RLS3D(1, 1, 1, x_init_theta, y_init_theta, z_init_theta, lambda);
   // flag
-  pred_state.fb_flag.data = false;
   ready_flag = true;
   ballSet_flag = false;
-  loop_init = false;
   predict_flag = false;
-  theta_initialize = true;
-  
+  pred_state.fb_flag.data = false;
+  loop_init = false;
   
   current_time = 0.0;
-  rls_degree = 1; 
-  timeVector = Eigen::VectorXd::Zero(rls_degree+1); // [1, t]
   window_size = 3;
 }
 
 void BouncingBallEstimator::callback(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // stampの更新 & dtの計算
   updateStamp(msg);
+
+  // 現在の(BODY相対の)位置、速度を計算
+  calcCurrentState(msg);
   
   // 状態の管理 + パラメタのリセット
   stateManager(msg);
-
-  // 現在の(BODY相対の)objの状態 = current_state_pos/vel を計算
-  calcCurrentState(msg);
 
   // 予測フラグが立っている場合、予測する
   if (predict_flag) calcPredState();
@@ -81,22 +73,6 @@ void BouncingBallEstimator::callback(const geometry_msgs::PointStamped::ConstPtr
   pred_state.fb_flag.data = false;
 }
 
-void BouncingBallEstimator::publish() {
-  current_state_pub.publish(current_state);
-  pred_state_pub.publish(pred_state);
-  if (predict_flag) {
-    fb_check.value = 0.2;
-  } else {
-    fb_check.value = 0.0;
-  }
-  check_pub.publish(fb_check);
-  current_state_pos_pub.publish(current_state_pos);
-
-  if (pred_state.fb_flag.data) {
-    std::cerr << "target_tm:" << pred_state.target_tm << std::endl;
-  }
-}
-
 void BouncingBallEstimator::updateStamp(const geometry_msgs::PointStamped::ConstPtr &msg) {
   current_state.header.stamp = msg->header.stamp;
   pred_state.header.stamp = msg->header.stamp;
@@ -105,94 +81,78 @@ void BouncingBallEstimator::updateStamp(const geometry_msgs::PointStamped::Const
   dt = (current_state.header.stamp - prev_state.header.stamp).toSec();
 }
 
-void BouncingBallEstimator::stateManager(const geometry_msgs::PointStamped::ConstPtr &msg) {
-  // 判定用の値設定
-  // 座標変換->フィルターの順番
-  geometry_msgs::PointStamped tmp_transformedPoint = transformPoint(tfBuffer, *msg); // 引数がgeometry_msgs::PointStampedなので参照渡し
-  std::vector<double> tmp_vel = std::vector<double>(3);
-  tmp_vel[0] = (tmp_transformedPoint.point.x - prev_state.pos.x)/dt;
-  tmp_vel[1] = (tmp_transformedPoint.point.y - prev_state.pos.y)/dt;
-  tmp_vel[2] = (tmp_transformedPoint.point.z - prev_state.pos.z)/dt;
-  
-  // 動作開始の判定
-  if (ready_flag) {
-    if (tmp_transformedPoint.point.z >= init_thr) {
-      // ボールをセットしたと判定
-      ballSet_flag = true;
-    } else if (ballSet_flag && tmp_transformedPoint.point.z < start_thr) {
-      // セットした後にある程度ボール位置が落ちてきたら動作が始まったと判定
-      ballSet_flag = false;
-      ready_flag = false;
-    }
-  } else {
-    // todo: ここのチェックを整理する
-    
-    // 高さ+速度ver
-    if (tmp_transformedPoint.point.z > bound_thr) {
-      if (tmp_vel[2] >= 0 && prev_state.vel.z >= 0) {
-    	predict_flag = true;
-      } else if (tmp_vel[2] >= 0 && prev_state.vel.z < 0) {
-    	predict_flag = false;
-    	current_time += dt; // リセットしない
-      } else if (tmp_vel[2] < 0 && prev_state.vel.z >= 0) {
-    	predict_flag = false;
-    	current_time += dt; // リセットしない
-      } else if (tmp_vel[2] < 0 && prev_state.vel.z < 0) {
-    	predict_flag = false;
-    	current_time = 0.0; // リセットしてok
-    	rls.reset(); // rlsの共分散行列初期化
-    	window.clear(); // フィルターのwindowのbuffを消す
-        loop_init = false;
-      }
-    } else if (tmp_transformedPoint.point.z <= bound_thr) {
-      predict_flag = false;
-      current_time = 0.0; // リセットしてok
-      rls.reset(); // rlsの共分散行列初期化
-      window.clear(); // フィルターのwindowのbuffを消す
-      loop_init = false;
-    }
-  }
-
-  if ( current_time == 0.0 && predict_flag == true ) {
-    // 予測の初回時にinit_thetaの位置の部分をセットし直す
-    std::vector<double> x_theta = {tmp_transformedPoint.point.x};
-    std::vector<double> y_theta = {tmp_transformedPoint.point.y};
-    std::vector<double> z_theta = {tmp_transformedPoint.point.z};
-    rls.rls3d[0].setParameters(x_theta);
-    rls.rls3d[1].setParameters(y_theta);
-    rls.rls3d[2].setParameters(z_theta);
-  }
-}
-
 void BouncingBallEstimator::calcCurrentState(const geometry_msgs::PointStamped::ConstPtr &msg) {
   // 座標変換
-  // geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, *msg);
-  geometry_msgs::PointStamped filteredPoint = transformPoint(tfBuffer, *msg);
-  // 平滑化
-  // geometry_msgs::PointStamped filteredPoint = applyFilter(transformedPoint);
-
-  if (fabs(filteredPoint.point.x) > 100) filteredPoint.point.x = 0;
-  if (fabs(filteredPoint.point.y) > 100) filteredPoint.point.y = 0;
-  if (fabs(filteredPoint.point.z) > 100) filteredPoint.point.z = 0;  
+  geometry_msgs::PointStamped transformedPoint = transformPoint(tfBuffer, *msg);
   
   // 位置
-  current_state.pos.x = filteredPoint.point.x;
-  current_state.pos.y = filteredPoint.point.y;
-  current_state.pos.z = filteredPoint.point.z;
+  current_state.pos.x = transformedPoint.point.x;
+  current_state.pos.y = transformedPoint.point.y;
+  current_state.pos.z = transformedPoint.point.z;
   // 速度
   current_state.vel.x = (current_state.pos.x - prev_state.pos.x) / dt;
   current_state.vel.y = (current_state.pos.y - prev_state.pos.y) / dt;
   current_state.vel.z = (current_state.pos.z - prev_state.pos.z) / dt;
 
-  current_state_pos.point.x = filteredPoint.point.x;
-  current_state_pos.point.y = filteredPoint.point.y;
-  current_state_pos.point.z = filteredPoint.point.z;
+  current_state_pos.point.x = transformedPoint.point.x;
+  current_state_pos.point.y = transformedPoint.point.y;
+  current_state_pos.point.z = transformedPoint.point.z;
 }
 
+void BouncingBallEstimator::stateManager(const geometry_msgs::PointStamped::ConstPtr &msg) {
+  // 動作開始の判定
+  if (ready_flag) {
+    if (current_state.pos.z >= init_thr) {
+      // ボールをセットしたと判定
+      ballSet_flag = true;
+    } else if (ballSet_flag && current_state.pos.z < start_thr) {
+      // セットした後にある程度ボール位置が落ちてきたら動作が始まったと判定
+      ballSet_flag = false;
+      ready_flag = false;
+    }
+  } else {
+    // 高さ+速度で判定
+    if (current_state.pos.z > bound_thr) {
+      if (current_state.vel.z >= 0 && prev_state.vel.z >= 0) {
+    	predict_flag = true;
+      } else if (current_state.vel.z >= 0 && prev_state.vel.z < 0) {
+    	predict_flag = false;
+    	current_time += dt; // リセットしない
+      } else if (current_state.vel.z < 0 && prev_state.vel.z >= 0) {
+    	predict_flag = false;
+    	current_time += dt; // リセットしない
+      } else if (current_state.vel.z < 0 && prev_state.vel.z < 0) {
+    	predict_flag = false;
+    	current_time = 0.0; // リセットしてok
+    	rls.reset(); // rlsの共分散行列初期化
+        loop_init = false;
+        // window.clear(); // フィルターのwindowのbuffを消す
+      }
+    } else {
+      predict_flag = false;
+      current_time = 0.0; // リセットしてok
+      rls.reset(); // rlsの共分散行列初期化
+      loop_init = false;
+      // window.clear(); // フィルターのwindowのbuffを消す
+    }
+  }
+
+  if ( current_time == 0.0 && predict_flag == true ) {
+    // 予測の初回時にinit_thetaの位置の部分をセットし直す
+    std::vector<double> x_theta = {current_state.pos.x};
+    std::vector<double> y_theta = {current_state.pos.y};
+    std::vector<double> z_theta = {current_state.pos.z};
+    rls.rls3d[0].setParameters(x_theta);
+    rls.rls3d[1].setParameters(y_theta);
+    rls.rls3d[2].setParameters(z_theta);
+  }
+}
+  
 void BouncingBallEstimator::calcPredState() {
   if (loop_init) { // 予測開始時を0[s]にする + 一周目はrlsをupdateしない
     current_time += dt;
-    
+
+    Eigen::VectorXd timeVector = Eigen::VectorXd::Zero(2); // [1,t]
     for (int i=0;i<timeVector.size();i++) timeVector(i) = pow(current_time, i);
     
     // 以下の式の右辺の係数を推定する
@@ -219,20 +179,11 @@ void BouncingBallEstimator::calcPredState() {
     } else {
       pred_state.fb_flag.data = false;
     }
-    
-    // todo: 速度
   }
-
-  if (fabs(pred_state.pos.x) > 100) pred_state.pos.x = 0;
-  if (fabs(pred_state.pos.y) > 100) pred_state.pos.y = 0;
-  if (fabs(pred_state.pos.z) > 100) pred_state.pos.z = 0;
-  if (fabs(pred_state.target_tm) > 100) pred_state.target_tm = 0;
-
-  if (!loop_init) std::cerr << "start" << std::endl;
-  std::cerr << "current_time: " << current_time << std::endl;
   loop_init = true;
 }
 
+// 使ってない
 geometry_msgs::PointStamped BouncingBallEstimator::applyFilter(const geometry_msgs::PointStamped &msg) {
   // windowへの追加
   Eigen::Vector3d pos(msg.point.x, msg.point.y, msg.point.z);
@@ -258,30 +209,25 @@ geometry_msgs::PointStamped BouncingBallEstimator::applyFilter(const geometry_ms
 }
 
 geometry_msgs::PointStamped BouncingBallEstimator::transformPoint(const tf2_ros::Buffer &tfBuffer, const geometry_msgs::PointStamped &msg) {
-  // 半球殻の重心->球の重心
-  Eigen::Vector3d pos(msg.point.x, msg.point.y, msg.point.z);
-  geometry_msgs::PointStamped tmp_point;
-  tmp_point.point.x = pos.x();
-  tmp_point.point.y = pos.y();
-  tmp_point.point.z = pos.z();
-
-  // 座標変換
-  geometry_msgs::TransformStamped trans;
-  trans = tfBuffer.lookupTransform(base_frame, camera_frame, ros::Time(0)); // (出力, 入力)の順番
+  geometry_msgs::TransformStamped trans = tfBuffer.lookupTransform(base_frame, camera_frame, ros::Time(0)); // (出力, 入力)の順番
   geometry_msgs::PointStamped transformedPoint;
-  tf2::doTransform(tmp_point, transformedPoint, trans); // 入力、出力、かける行列
+  tf2::doTransform(msg, transformedPoint, trans); // 入力、出力、かける行列
   
   return transformedPoint;
 }
 
-void BouncingBallEstimator::calcInitState() {
-  init_vel.push_back(current_state.vel.z);
-  if (init_vel.size() == 3) {
-    std::vector<double> new_theta = {current_state.pos.z, std::accumulate(init_vel.begin(), init_vel.end(), 0.0) / 3.0};
-    rls.rls3d[2].setParameters(new_theta);
-    theta_initialize = false;
+void BouncingBallEstimator::publish() {
+  current_state_pub.publish(current_state);
+  current_state_pos_pub.publish(current_state_pos);
+  pred_state_pub.publish(pred_state);
+
+  // fbのタイミング確認用
+  if (predict_flag) {
+    fb_check.value = 0.2;
+  } else {
+    fb_check.value = 0.0;
   }
-  // x,yもここで計算するようにする
+  check_pub.publish(fb_check);
 }
     
 // srv
@@ -294,7 +240,7 @@ bool BouncingBallEstimator::setRLSParameters(bouncing_ball_estimator::SetRLSPara
 }
 
 bool BouncingBallEstimator::setRLSMatrix(bouncing_ball_estimator::SetRLSMatrix::Request &req,
-                                             bouncing_ball_estimator::SetRLSMatrix::Response &res) {
+                                         bouncing_ball_estimator::SetRLSMatrix::Response &res) {
   Eigen::MatrixXd matrix(req.rows, req.cols);
 
   int index = 0;
@@ -314,12 +260,11 @@ bool BouncingBallEstimator::setRLSMatrix(bouncing_ball_estimator::SetRLSMatrix::
 }
   
 bool BouncingBallEstimator::getRLSParameters(bouncing_ball_estimator::GetRLSParameters::Request &req,
-                                                 bouncing_ball_estimator::GetRLSParameters::Response &res) {
+                                             bouncing_ball_estimator::GetRLSParameters::Response &res) {
   res.params[0] = rls.rls3d[2].getParameters()[0];
   res.params[1] = rls.rls3d[2].getParameters()[1];
   return true;
 }
-
 
 } // namespace bouncing_ball_estimator
 
