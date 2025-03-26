@@ -7,7 +7,8 @@ RLS::RLS(int k, const std::vector<double>& new_theta, double lambda) : degree(k)
 {
   theta.resize(k+1);
   setParameters(new_theta);  
-  P = Eigen::MatrixXd::Identity(degree+1, degree+1)*1e2; 
+  P = Eigen::MatrixXd::Identity(degree+1, degree+1)*1e2;
+  setP = P;
 }
 
 void RLS::update(const Eigen::VectorXd& x, double y) {
